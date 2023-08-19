@@ -6,7 +6,7 @@ import pytz
 from aiogram import types, Bot
 from aiogram.types import InputMediaPhoto, InputMediaVideo
 
-from data import config
+from bot_data import config
 from db import functions
 from db.models import Channel, NewJoin, ChannelConfiguration, SendedPost, ReactionsKeyboard, Post, Keyboard, Button, \
 	Reaction
@@ -603,20 +603,37 @@ def swap_links_in_text(old_text: str, new_link):
 	from bs4 import BeautifulSoup
 
 	soup = BeautifulSoup(old_text, 'html.parser')
+	link_soup = BeautifulSoup(new_link, 'html.parser')
+	new_link_bs4 = new_link
+	new_link_text = new_link
+	for a in link_soup.findAll('a'):
+		new_link_bs4 = a['href']
+		new_link_text = str(a.string)
+	print(new_link_text)
+	print(new_link_bs4)
 	for a in soup.findAll('a'):
 		print(a['href'])
-		a['href'] = a['href'].replace(a.get('href'), new_link)
+		a['href'] = a['href'].replace(a.get('href'), new_link_bs4)
 
 	for b in soup.findAll('b'):
 		if 'http://' in b.string or 'https://' in b.string:
-			b.replace_with(new_link)
+			new_tag = soup.new_tag('a', href=new_link_bs4)
+			new_text = soup.new_string(new_link_text)
+			b.replace_with(new_text)
+			new_tag.append(new_text)
+			b.wrap(new_tag)
+
+	for i in soup.findAll('i'):
+		if 'http://' in i.string or 'https://' in i.string:
+			i.replace_with(new_link)
 
 	links_list = []
 
 	old_text = str(soup)
+	print(old_text)
 
 	for i in old_text.split():
-		if ' http://' in i or ' https://' in i:
+		if 'http://' == i[:7] or 'https://' == i[:8]:
 			links_list.append(i)
 
 	print(f'LINKS:', links_list)

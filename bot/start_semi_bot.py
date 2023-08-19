@@ -1,3 +1,5 @@
+from bot_data import config
+
 import time
 from pprint import pprint
 
@@ -7,7 +9,6 @@ from aiogram.utils import executor
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-from data import config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 scheduler = AsyncIOScheduler()
