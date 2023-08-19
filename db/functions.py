@@ -6,6 +6,7 @@ from pprint import pprint
 from aiogram import types
 
 from db.models import *
+from handlers.other import tg_stat
 
 
 def add_user(user_id: int):
@@ -30,6 +31,16 @@ def add_channel(admin_id: int, channel_id: int, title: str):
 		channel.save()
 		configuration = ChannelConfiguration.create(channel_id=channel_id)
 		configuration.save()
+		return channel
+
+def add_find_channel(channel_id: int, title: str, link: str):
+	channel = FindChannel.get_or_none(channel_id=channel_id)
+	if channel is None:
+		subscribers = tg_stat.get_channel_subscriber(channel_id)
+		err = tg_stat.get_channel_err(channel_id)
+		views = round(subscribers * err / 100)
+		channel = FindChannel.create(channel_id=channel_id, title=title, link=link, base_price=1000, views=views, subscribers=subscribers, err=err, category=47)
+		channel.save()
 		return channel
 
 

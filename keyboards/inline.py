@@ -1,8 +1,8 @@
 from pprint import pprint
 
 from aiogram import types
-from data import config
-from db.models import ReactionsKeyboard, Reaction, Button, Post
+from bot_data import config
+from db.models import ReactionsKeyboard, Reaction, Button, Post, FindChannel, Category, Saved, Basket, PostInfo
 
 
 def setting_schedule(without=None):
@@ -11,11 +11,13 @@ def setting_schedule(without=None):
 	b1 = types.InlineKeyboardButton(text='Подтверждение', callback_data='confirm')
 	b3 = types.InlineKeyboardButton(text='Минимальные интервалы публикаций', callback_data='output_interval')
 	b4 = types.InlineKeyboardButton(text='Сохранить', callback_data='next')
+	b5 = types.InlineKeyboardButton(text='Назад', callback_data='back')
 
 	keyboard.add(b1)
 	keyboard.add(b2)
 	keyboard.add(b3)
 	keyboard.add(b4)
+	keyboard.add(b5)
 
 	return keyboard
 
@@ -66,10 +68,12 @@ def cabinet_payment_data_keyboard():
 	b2 = types.InlineKeyboardButton(text='Я физлицо', callback_data='phys-person')
 	b3 = types.InlineKeyboardButton(text='Я самозанятый', callback_data='self-employed')
 	b1 = types.InlineKeyboardButton(text='Я ИП/ООО', callback_data='IPOOO')
+	b4 = types.InlineKeyboardButton(text='Назад', callback_data='back')
 
 	keyboard.add(b1)
 	keyboard.add(b2)
 	keyboard.add(b3)
+	keyboard.add(b4)
 
 	return keyboard
 
@@ -199,14 +203,36 @@ def rewrite_keyboard(start_markup):
 
 	return keyboard
 
-def add_markup_send_post(start_markup):
-	if start_markup:
-		b1 = types.InlineKeyboardButton(text='Изменить клавиатуру', callback_data='swap_keyboard')
-		start_markup.add(b1)
-	else:
+def add_markup_send_post(start_markup, is_album=False, context=None):
+	if not start_markup:
 		start_markup = types.InlineKeyboardMarkup()
-		b1 = types.InlineKeyboardButton(text='Изменить клавиатуру', callback_data='swap_keyboard')
-		start_markup.add(b1)
+
+	context = PostInfo.get_or_none(id=context) if context else None
+
+	b1 = types.InlineKeyboardButton(text='Изменить текст', callback_data='edit_text')
+	b2 = types.InlineKeyboardButton(text='Изменить медиа', callback_data='edit_media')
+	b3 = types.InlineKeyboardButton(text='Изменить клавиатуру', callback_data='swap_keyboard')
+	b4 = types.InlineKeyboardButton(text='Скрытое продолжение', callback_data='hidden_sequel')
+	if context:
+		if context.with_notification:
+			b5 = types.InlineKeyboardButton(text='Уведомления ✅', callback_data='swap_notification')
+		else:
+			b5 = types.InlineKeyboardButton(text='Уведомления ❌', callback_data='swap_notification')
+	b6 = types.InlineKeyboardButton(text='Комментарии', callback_data='swap_keyboard')
+	b7 = types.InlineKeyboardButton(text='Подделиться', callback_data='share')
+	b8 = types.InlineKeyboardButton(text='Копировать', callback_data='copy')
+	b9 = types.InlineKeyboardButton(text='Заказать продвижение', callback_data='order_adv')
+	b10 = types.InlineKeyboardButton(text='Ответный пост', callback_data='reply_post')
+
+	start_markup.add(b1, b2)
+	if not is_album:
+		start_markup.add(b3)
+	start_markup.add(b4)
+	start_markup.add(b5, b6)
+	start_markup.add(b7, b8)
+	start_markup.add(b9)
+	start_markup.add(b10)
+
 	return start_markup
 
 
@@ -319,13 +345,15 @@ def channel_setting():
 	b2 = types.InlineKeyboardButton(text='Управление принятием заявок', callback_data='application_manage')
 	b3 = types.InlineKeyboardButton(text='Поддержка', callback_data='support')
 	b4 = types.InlineKeyboardButton(text='Расписание', callback_data='schedule')
-	b5 = types.InlineKeyboardButton(text='Назад', callback_data='back')
+	b5 = types.InlineKeyboardButton(text='Рекламная ссылка', callback_data='ads_link')
+	b6 = types.InlineKeyboardButton(text='Назад', callback_data='back')
 
 	keyboard.add(b1)
 	keyboard.add(b2)
 	keyboard.add(b3)
 	keyboard.add(b4)
 	keyboard.add(b5)
+	keyboard.add(b6)
 
 	return keyboard
 
@@ -725,5 +753,386 @@ def swap_links_in_markup(old_markup: types.InlineKeyboardMarkup, new_link):
 		elif len(buttons) == 8:
 			keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6],
 						 buttons[7])
+
+	return keyboard
+
+def setting_filters():
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='Средний охват поста ERR', callback_data='filter_err')
+	b2 = types.InlineKeyboardButton(text='Охват', callback_data='filter_views')
+	b3 = types.InlineKeyboardButton(text='Подписчики', callback_data='filter_sub')
+	b4 = types.InlineKeyboardButton(text='Показать результаты', callback_data='filter_show_result')
+	b5 = types.InlineKeyboardButton(text='В меню', callback_data='back')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+	keyboard.add(b3)
+	keyboard.add(b4)
+	keyboard.add(b5)
+
+	return keyboard
+
+def choose_find_channel(channels, page=1):
+	keyboard = types.InlineKeyboardMarkup()
+
+	for channel in channels[10 * (page - 1):10 * page]:
+		b = types.InlineKeyboardButton(text=channel.title, callback_data=f'open_find_channel${channel.id}')
+		keyboard.add(b)
+
+	if page > 1:
+		if page < len(channels) // 10 + 1 if len(channels) % 10 else 0:
+			b1 = types.InlineKeyboardButton(text='⬅️', callback_data=f'change_page_to_find_channel${page - 1}')
+			b2 = types.InlineKeyboardButton(text='➡️', callback_data=f'change_page_to_find_channel${page + 1}')
+
+			keyboard.add(b1, b2)
+		else:
+			b1 = types.InlineKeyboardButton(text='⬅️', callback_data=f'change_page_to_find_channel${page - 1}')
+
+			keyboard.add(b1)
+	else:
+		if page < len(channels) // 10 + 1 if len(channels) % 10 else 0:
+			b2 = types.InlineKeyboardButton(text='➡️', callback_data=f'change_page_to_find_channel${page + 1}')
+
+			keyboard.add(b2)
+
+	b = types.InlineKeyboardButton(text='◀️ Назад', callback_data=f'back_page_to_find')
+	keyboard.add(b)
+
+	return keyboard
+
+def basket(channels, page=1):
+	keyboard = types.InlineKeyboardMarkup()
+
+	for channel in channels[8 * (page - 1):8 * page]:
+		b = types.InlineKeyboardButton(text=channel.title, callback_data=f'open_basket_channel${channel.id}')
+		keyboard.add(b)
+
+	if page > 1:
+		if page < len(channels) // 10 + 1 if len(channels) % 10 else 0:
+			b1 = types.InlineKeyboardButton(text='⬅️', callback_data=f'change_page_basket_channel${page - 1}')
+			b2 = types.InlineKeyboardButton(text='➡️', callback_data=f'change_page_basket_channel${page + 1}')
+
+			keyboard.add(b1, b2)
+		else:
+			b1 = types.InlineKeyboardButton(text='⬅️', callback_data=f'change_page_basket_channel${page - 1}')
+
+			keyboard.add(b1)
+	else:
+		if page < len(channels) // 10 + 1 if len(channels) % 10 else 0:
+			b2 = types.InlineKeyboardButton(text='➡️', callback_data=f'change_page_basket_channel${page + 1}')
+
+			keyboard.add(b2)
+
+	b1 = types.InlineKeyboardButton(text='➕ Добавить', callback_data=f'add_basket_channel')
+	b2 = types.InlineKeyboardButton(text='🗑 Очистить', callback_data=f'delete_all_basket_channels')
+	b3 = types.InlineKeyboardButton(text='📊 Статистика', callback_data=f'load_basket_stat')
+	b4 = types.InlineKeyboardButton(text='🛒 К оформлению', callback_data=f'order_basket')
+	keyboard.add(b1)
+	keyboard.add(b2)
+	keyboard.add(b3)
+	keyboard.add(b4)
+
+	return keyboard
+
+def back_to_find_channel(user_id, id):
+	keyboard = types.InlineKeyboardMarkup()
+
+	saved = Saved.select().where(Saved.user_id == user_id)
+	in_saved = id in [i.find_channel_id for i in saved]
+
+	basket = Basket.select().where(Basket.user_id == user_id)
+	in_basket = id in [i.find_channel_id for i in basket]
+
+	if in_basket:
+		b1 = types.InlineKeyboardButton(text='Перейти в корзину', callback_data=f'go_to_basket')
+	else:
+		b1 = types.InlineKeyboardButton(text='Добавить в корзину', callback_data=f'basket_find_channel${id}')
+	if in_saved:
+		b2 = types.InlineKeyboardButton(text='⭐️ Избранное', callback_data=f'save_find_channel${id}')
+	else:
+		b2 = types.InlineKeyboardButton(text='Избранное', callback_data=f'save_find_channel${id}')
+	b3 = types.InlineKeyboardButton(text='Назад', callback_data=f'back_to_find_channel')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+	keyboard.add(b3)
+
+	return keyboard
+
+def my_saved(channels):
+	channels = [FindChannel.get(id=i.find_channel_id) for i in channels]
+	keyboard = types.InlineKeyboardMarkup()
+	for channel in channels:
+		b1 = types.InlineKeyboardButton(text=channel.title, callback_data=f'open_saved_channel${channel.id}')
+		keyboard.add(b1)
+
+	b2 = types.InlineKeyboardButton(text='Назад', callback_data=f'back')
+	keyboard.add(b2)
+
+	return keyboard
+
+def back_to_saved_channel(id):
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='Удалить', callback_data=f'delete_saved_channel${id}')
+	b2 = types.InlineKeyboardButton(text='Назад', callback_data=f'back_to_saved_channels')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+
+	return keyboard
+
+def choose_payment_type():
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='Оплата картой', callback_data=f'payments_card')
+	b2 = types.InlineKeyboardButton(text='Оплата по безналу', callback_data=f'payments_bill')
+	b3 = types.InlineKeyboardButton(text='Назад', callback_data=f'back_form_order')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+	keyboard.add(b3)
+
+	return keyboard
+
+def choose_cat(page=1):
+	keyboard = types.InlineKeyboardMarkup()
+
+	pre_cats = Category.select()
+
+	cats = pre_cats[10*(page-1):10*page]
+	print(cats)
+
+	for cat in cats:
+		b = types.InlineKeyboardButton(text=cat.name_ru, callback_data=f'choose_cat_to_find${cat.id}')
+		keyboard.add(b)
+
+	if page > 1:
+		if page < len(pre_cats) // 10 + 1 if len(pre_cats) % 10 else 0:
+			b1 = types.InlineKeyboardButton(text='⬅️', callback_data=f'change_page_to_find${page-1}')
+			b2 = types.InlineKeyboardButton(text='➡️', callback_data=f'change_page_to_find${page+1}')
+
+			keyboard.add(b1, b2)
+
+		else:
+			b1 = types.InlineKeyboardButton(text='⬅️', callback_data=f'change_page_to_find${page - 1}')
+
+			keyboard.add(b1)
+	else:
+		if page < len(pre_cats) // 10 + 1 if len(pre_cats) % 10 else 0:
+			b2 = types.InlineKeyboardButton(text='➡️', callback_data=f'change_page_to_find${page + 1}')
+
+			keyboard.add(b2)
+
+	return keyboard
+
+
+def order_keyboard(url):
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='Оплата', url=url)
+
+	keyboard.add(b1)
+
+	return keyboard
+
+def valid_inn(user_id):
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='Одобрено', callback_data=f'valid_inn${user_id}')
+
+	keyboard.add(b1)
+
+	return keyboard
+
+def back_to_filters():
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='Назад', callback_data=f'back_to_filters')
+
+	keyboard.add(b1)
+
+	return keyboard
+
+def filters_err():
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='0-20%', callback_data=f'filters_err${1}')
+	b2 = types.InlineKeyboardButton(text='20-40%', callback_data=f'filters_err${2}')
+	b3 = types.InlineKeyboardButton(text='40-60%', callback_data=f'filters_err${3}')
+	b4 = types.InlineKeyboardButton(text='60-80%', callback_data=f'filters_err${4}')
+	b5 = types.InlineKeyboardButton(text='80-100%', callback_data=f'filters_err${5}')
+	b6 = types.InlineKeyboardButton(text='Назад', callback_data=f'back_to_filters')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+	keyboard.add(b3)
+	keyboard.add(b4)
+	keyboard.add(b5)
+	keyboard.add(b6)
+
+	return keyboard
+
+def choose_basket_channel(channel_id):
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='🗑 Удалить', callback_data=f'delete_basket_channel${channel_id}')
+	b2 = types.InlineKeyboardButton(text='⬅️ Назад', callback_data=f'back_to_basket')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+
+	return keyboard
+
+def myself_cabinet():
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='Статистика размещений', callback_data=f'placement_stat')
+	b2 = types.InlineKeyboardButton(text='Мои платежные данные', callback_data=f'payment_data')
+	b3 = types.InlineKeyboardButton(text='Мои посты', callback_data=f'my_posts')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+	keyboard.add(b3)
+
+	return keyboard
+
+
+def pre_post_keyboard():
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='Заказать рекламу', callback_data=f'go_post')
+	b2 = types.InlineKeyboardButton(text='Заказать репост', callback_data=f'None')
+	b3 = types.InlineKeyboardButton(text='Заказать статью', callback_data=f'None')
+	b4 = types.InlineKeyboardButton(text='Назад', callback_data=f'back_form_order')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+	keyboard.add(b3)
+	keyboard.add(b4)
+
+	return keyboard
+
+def moder_post():
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='✅ Принять', callback_data=f'go_post')
+	b2 = types.InlineKeyboardButton(text='❌ Отказать', callback_data=f'None')
+
+	keyboard.add(b1, b2)
+
+	return keyboard
+
+def my_posts(posts):
+	import re
+
+	CLEANR = re.compile('<.*?>')
+
+	def cleanhtml(raw_html):
+		cleantext = re.sub(CLEANR, '', raw_html)
+		return cleantext
+	keyboard = types.InlineKeyboardMarkup()
+
+	for post in posts:
+		current_post = Post.get(id=post.post_id)
+		b = types.InlineKeyboardButton(text=f"{re.sub(CLEANR, '', current_post.text)[:20]}..", callback_data=f'open_my_post${post.id}')
+		keyboard.add(b)
+
+	b3 = types.InlineKeyboardButton(text='Добавить', callback_data=f'add_my_post')
+	b4 = types.InlineKeyboardButton(text='Назад', callback_data=f'back')
+
+	keyboard.add(b3)
+	keyboard.add(b4)
+
+	return keyboard
+
+def from_db_to_markup_by_key_id(key_id):
+	if key_id is None:
+		return None
+
+	keyboard = types.InlineKeyboardMarkup()
+	buttons_select = Button.select().where(Button.keyboard_id == key_id)
+
+	row = 0
+	buttons = []
+	for b in buttons_select:
+		pprint(b.text)
+		if b.row == row:
+			buttons.append(types.InlineKeyboardButton(text=b.text, url=b.url))
+		else:
+
+			if len(buttons) == 1:
+				keyboard.add(buttons[0])
+			elif len(buttons) == 2:
+				keyboard.add(buttons[0], buttons[1])
+			elif len(buttons) == 3:
+				keyboard.add(buttons[0], buttons[1], buttons[2])
+			elif len(buttons) == 4:
+				keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3])
+			elif len(buttons) == 5:
+				keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4])
+			elif len(buttons) == 6:
+				keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4], buttons[5])
+			elif len(buttons) == 7:
+				keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6])
+			elif len(buttons) == 8:
+				keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6],
+							 buttons[7])
+
+			buttons = [types.InlineKeyboardButton(text=b.text, url=b.url)]
+			row += 1
+
+	if len(buttons) == 1:
+		keyboard.add(buttons[0])
+	elif len(buttons) == 2:
+		keyboard.add(buttons[0], buttons[1])
+	elif len(buttons) == 3:
+		keyboard.add(buttons[0], buttons[1], buttons[2])
+	elif len(buttons) == 4:
+		keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3])
+	elif len(buttons) == 5:
+		keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4])
+	elif len(buttons) == 6:
+		keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4], buttons[5])
+	elif len(buttons) == 7:
+		keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6])
+	elif len(buttons) == 8:
+		keyboard.add(buttons[0], buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6],
+					 buttons[7])
+
+	return keyboard
+
+def my_post_panel(my_post_id):
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton('Удалить', callback_data=f'delete_my_post${my_post_id}')
+	b2 = types.InlineKeyboardButton('Назад', callback_data=f'back_to_my_posts')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+
+	return keyboard
+
+def start_channel(user_id, id):
+	keyboard = types.InlineKeyboardMarkup()
+
+	saved = Saved.select().where(Saved.user_id == user_id)
+	in_saved = id in [i.find_channel_id for i in saved]
+
+	basket = Basket.select().where(Basket.user_id == user_id)
+	in_basket = id in [i.find_channel_id for i in basket]
+
+	if in_basket:
+		b1 = types.InlineKeyboardButton(text='Перейти в корзину', callback_data=f'go_to_basket')
+	else:
+		b1 = types.InlineKeyboardButton(text='Добавить в корзину', callback_data=f'basket_find_channel${id}')
+	if in_saved:
+		b2 = types.InlineKeyboardButton(text='⭐️ Избранное', callback_data=f'save_find_channel${id}')
+	else:
+		b2 = types.InlineKeyboardButton(text='Избранное', callback_data=f'save_find_channel${id}')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
 
 	return keyboard

@@ -9,7 +9,7 @@ from aiogram.types import InputFile
 from bot.start_bot import bot, dp
 from aiogram import types, Dispatcher
 
-from data import config
+from bot_data import config
 from db.models import *
 from keyboards import inline, reply
 from keyboards.inline import setting_schedule, only_back
@@ -60,6 +60,7 @@ async def add_channel_end(message: types.Message, state: FSMContext):
 			await message.answer(TEXTS.the_channel_already_added)
 			return
 		await message.answer(TEXTS.the_channel_success_added, reply_markup=set_schedule())
+		db.add_find_channel(channel_id=_channel_id, title=info.title, link=info.get_url())
 
 		await state.finish()
 		await user_state.SettingSchedule.SettingSchedule.set()
@@ -197,11 +198,12 @@ async def set_day_interval_answer(message: types.Message, state: FSMContext):
 
 async def setting_schedule_back(call: types.CallbackQuery, state: FSMContext):
 	context = await state.get_data()
+	print(context)
 	await state.finish()
-	await user_state.SettingSchedule.SettingSchedule.set()
-	await state.update_data(channel_id=context['channel_id'])
-	await call.message.edit_text(TEXTS.setting_schedule, reply_markup=setting_schedule())
-
+	channel = Channel.get(channel_id=context['channel_id'])
+	await user_state.Settings.SettingChannel.set()
+	await state.update_data(channel_id=channel.channel_id)
+	await call.message.edit_text(TEXTS.channel_setting, reply_markup=inline.channel_setting())
 
 async def set_confirm(call: types.CallbackQuery, state: FSMContext):
 	context = await state.get_data()
@@ -1025,12 +1027,15 @@ async def send_photo_post_handler(message: types.Message, state: FSMContext):
 		data = await state.get_data()
 		print(data['text'])
 
-		markup = inline.add_markup_send_post(data['reply_markup'])
 		if len(data['media']) == 1:
+			data = await state.get_data()
+			p = PostInfo.create()
+			markup = inline.add_markup_send_post(data['reply_markup'], context=p.id)
 			try:
-				await message.answer_photo(data['media'][0], caption=data['text'], reply_markup=markup)
+				mes = await message.answer_photo(data['media'][0], caption=data['text'], reply_markup=markup)
 			except Exception as e:
-				await message.answer_video(data['media'][0], caption=data['text'], reply_markup=markup)
+				mes = await message.answer_video(data['media'][0], caption=data['text'], reply_markup=markup)
+			await state.update_data(info=p.id, post_markup=mes.reply_markup)
 
 		else:
 			media = types.MediaGroup()
@@ -1052,9 +1057,9 @@ async def send_photo_post_handler(message: types.Message, state: FSMContext):
 						media.attach_video(data['media'][i], caption=data['text'])
 
 					# try:
-					# 	media.attach_photo(data['media'][i], data['text'])
+					# 	media.attach_photo(bot_data['media'][i], bot_data['text'])
 					# except Exception as e:
-					# 	media.attach_video(data['media'][i], data['text'])
+					# 	media.attach_video(bot_data['media'][i], bot_data['text'])
 				else:
 					try:
 						print('photo is')
@@ -1072,22 +1077,27 @@ async def send_photo_post_handler(message: types.Message, state: FSMContext):
 						media.attach_video(data['media'][i])
 
 					# try:
-					# 	media.attach_photo(data['media'][i])
+					# 	media.attach_photo(bot_data['media'][i])
 					# except Exception as e:
-					# 	media.attach_video(data['media'][i])
+					# 	media.attach_video(bot_data['media'][i])
 
 			print('SEND')
 
 			await message.answer_media_group(media)
-			await message.answer(TEXTS.album_edit, disable_web_page_preview=True)
-
+			data = await state.get_data()
+			p = PostInfo.create()
+			mes = await message.answer(TEXTS.album_edit, reply_markup=inline.add_markup_send_post(None, True, context=p.id), disable_web_page_preview=True)
+			await state.update_data(info=p.id, post_markup=mes.reply_markup)
 
 async def send_text_post_handler(message: types.Message, state: FSMContext):
 	await state.update_data(active=True, text=message.html_text, reply_markup=inline.rewrite_keyboard(message.reply_markup))
 	data = await state.get_data()
-	markup = inline.add_markup_send_post(data['reply_markup'])
-	await message.answer(data['text'], reply_markup=markup, disable_web_page_preview=True)
-
+	p = PostInfo.create()
+	await state.update_data(info=p.id)
+	print(f'Data: {data}')
+	markup = inline.add_markup_send_post(data['reply_markup'], context=p.id)
+	mes = await message.answer(data['text'], reply_markup=markup, disable_web_page_preview=True)
+	await state.update_data(post_markup = mes.reply_markup)
 
 async def next_send_post_handler(message: types.Message, state: FSMContext):
 	data = await state.get_data()
@@ -1129,7 +1139,7 @@ async def content_plan_copy_post_now(call: types.CallbackQuery, state: FSMContex
 	await utils.send_post_to_channel_by_post_id(channel_id=channel.channel_id, user_id=call.from_user.id, post_id=data['post_id'])
 
 	try:
-		# await utils.send_post_to_channel_by_post_id(channel_id=channel.channel_id, user_id=call.from_user.id, post_id=data['post_id'])
+		# await utils.send_post_to_channel_by_post_id(channel_id=channel.channel_id, user_id=call.from_user.id, post_id=bot_data['post_id'])
 		await call.message.answer(TEXTS.message_posted_success.format(title=channel.title))
 
 	except Exception as e:
@@ -1567,6 +1577,13 @@ async def setting_channel_schedule(call: types.CallbackQuery, state: FSMContext)
 	await state.update_data(data, back_to_channel_setting=True)
 	await call.message.edit_text(TEXTS.setting_schedule, reply_markup=setting_schedule())
 
+async def setting_channel_ads_link(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	print(data)
+	await user_state.SettingSchedule.ADSLink.set()
+	await state.update_data(data, back_to_channel_setting=True)
+	await call.message.edit_text(TEXTS.ads_link_text(data['channel_id']), reply_markup=inline.only_back())
+
 
 async def setting_channel_public(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
@@ -1849,9 +1866,9 @@ async def change_links_send_link(message: types.Message, state: FSMContext):
 						media.attach_video(data['media'][i], caption=text)
 
 				# try:
-				# 	media.attach_photo(data['media'][i], data['text'])
+				# 	media.attach_photo(bot_data['media'][i], bot_data['text'])
 				# except Exception as e:
-				# 	media.attach_video(data['media'][i], data['text'])
+				# 	media.attach_video(bot_data['media'][i], bot_data['text'])
 				else:
 					try:
 						print('photo is')
@@ -1873,8 +1890,72 @@ async def change_links_send_link(message: types.Message, state: FSMContext):
 	await message.answer('Готово', reply_markup=reply.main_keyboard())
 	await state.finish()
 
+async def setting_shedule_back(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	channel = Channel.get(id=data['channel_id'])
+	await user_state.Settings.SettingChannel.set()
+	await state.update_data(channel_id=channel.channel_id)
+	await call.message.edit_text(TEXTS.channel_setting, reply_markup=inline.channel_setting())
+
+async def work_handler(message: types.Message):
+	t = '''-1001783245871
+-1001979821615
+-1001724652813
+-1001548734080
+-1001591684866
+-1001499549413
+-1001673276336
+-1001517999952'''.split()
+
+	for i in t:
+		chat = await bot.get_chat(chat_id=int(i))
+		print(chat.invite_link, chat.title)
+
+async def send_post_edit_text_handler(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	await user_state.SendEditPost.EditText.set()
+	mes = await call.message.answer('Введите новый текст', reply_markup=inline.only_back())
+	await state.update_data(data, post_message_id=call.message.message_id, message_to_delete=[mes.message_id])
+
+async def send_edit_post_text_handler(message: types.Message, state: FSMContext):
+	text = message.html_text
+	data = await state.get_data()
+	data['text'] = text
+	if data.get('media') is None or data['media'] == []:
+		await bot.edit_message_text(text=text, chat_id=message.from_user.id, message_id=data['post_message_id'], reply_markup=data['post_markup'])
+	else:
+		await bot.edit_message_caption(caption=text, chat_id=message.from_user.id, message_id=data['post_message_id'], reply_markup=data['post_markup'])
+	for i in data['message_to_delete']:
+		await bot.delete_message(message.from_user.id, i)
+
+	await bot.delete_message(message.from_user.id, message.message_id)
+	await user_state.AddPost.SendPost.set()
+	await state.update_data(data)
+
+async def send_edit_post_back_handler(call: types.CallbackQuery, state: FSMContext):
+	await call.message.delete()
+	data = await state.get_data()
+	await user_state.AddPost.SendPost.set()
+	await state.update_data(data)
+
+
+async def send_post_edit_media_handler(call: types.CallbackQuery, state: FSMContext):
+	pass
+
+async def send_post_swap_notification_handler(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	p = PostInfo.get(id=data['info'])
+	p.with_notification = not p.with_notification
+	p.save()
+	await call.message.edit_reply_markup(reply_markup=inline.add_markup_send_post(data['reply_markup'], context=p.id))
+
+async def send_post_reply_post_handler(call: types.CallbackQuery, state: FSMContext):
+	pass
+
+
 def register_user_handlers(dp: Dispatcher):
 	dp.register_message_handler(start_handler, commands=['start', 'restart'], state='*')
+	dp.register_message_handler(work_handler, commands=['work'], state='*')
 	dp.register_message_handler(send_answer_start_offer_access,
 								state=user_state.SendSmallAnswer.sendAnswerStartOfferAccess)
 	dp.register_message_handler(add_channel_end_cancel, state=user_state.Settings.sendMessageFromChannel,
@@ -1949,10 +2030,16 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_message_handler(swap_keyboard_handler, state=user_state.AddPost.SwapKeyboard, content_types=['text'])
 	dp.register_callback_query_handler(swap_keyboard, state=user_state.AddPost.SendPost, text='swap_keyboard')
 	dp.register_message_handler(send_photo_post_handler, state=user_state.AddPost.SendPost, content_types=['photo', 'video'])
+	dp.register_callback_query_handler(send_post_edit_text_handler, state=user_state.AddPost.SendPost, text='edit_text')
+	dp.register_callback_query_handler(send_post_edit_media_handler, state=user_state.AddPost.SendPost, text='edit_media')
+	dp.register_callback_query_handler(send_post_swap_notification_handler, state=user_state.AddPost.SendPost, text='swap_notification')
+	dp.register_callback_query_handler(send_post_reply_post_handler, state=user_state.AddPost.SendPost, text='reply_post')
 	dp.register_message_handler(rewrite_get_post_back, state=user_state.RewritePost.Main, text='Отмена')
 	dp.register_message_handler(rewrite_get_post_just_back, state=[user_state.RewritePost.EditText, user_state.RewritePost.EditMedia, user_state.RewritePost.EditMarkup], text='Отмена')
 	dp.register_message_handler(rewrite_get_post, state=user_state.RewritePost.Main, content_types=['text', 'photo', 'video'])
-	dp.register_message_handler(edit_post_media, state=user_state.EditPost, content_types=['photo', 'video'])
+	dp.register_message_handler(send_edit_post_text_handler, state=user_state.SendEditPost.EditText, content_types=['text'])
+	dp.register_message_handler(send_edit_post_back_handler, state=user_state.SendEditPost, text='back')
+	dp.register_message_handler(edit_post_media, state=user_state.EditPost, content_types=['photo',																																																																																																																																																																																							 'video'])
 	dp.register_message_handler(rewrite_post_edit_media_send, state=user_state.RewritePost.EditMedia, content_types=['photo', 'video'])
 	dp.register_message_handler(send_text_post_handler, state=user_state.AddPost.SendPost, content_types=['text'])
 	dp.register_callback_query_handler(send_post_now, state=user_state.AddPost.SendPost, text='send_post_now')
@@ -1978,6 +2065,7 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_callback_query_handler(setting_application_manage, state=user_state.Settings.Main, text_startswith='application_manage')
 	dp.register_callback_query_handler(setting_referal_program, state=user_state.Settings.Main, text_startswith='referal_program')
 	dp.register_callback_query_handler(setting_channel_schedule, state=user_state.Settings.SettingChannel, text_startswith='schedule')
+	dp.register_callback_query_handler(setting_channel_ads_link, state=user_state.Settings.SettingChannel, text_startswith='ads_link')
 	# dp.register_callback_query_handler(setting_channel_back, state=user_state.Settings.SettingChannel, text='back')
 	dp.register_callback_query_handler(setting_back, state=user_state.Settings, text='back')
 	dp.register_callback_query_handler(content_plan_back_to_edit_post, state=user_state.EditPost, text='back')

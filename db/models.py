@@ -50,6 +50,15 @@ class Post(BaseModel):
 	delete_time = IntegerField(null=True)
 
 
+class PostInfo(BaseModel):
+	post_id = IntegerField(null=True)
+	with_notification = BooleanField(default=True)
+	with_comment = BooleanField(default=True)
+	hidden_sequel_text = CharField(null=True)
+	hidden_sequel_message_id = CharField(null=True)
+	reply_message_id = IntegerField(null=True)
+
+
 class PostTime(BaseModel):
 	user_id = IntegerField()
 	channel_id = IntegerField()
@@ -108,10 +117,59 @@ class ChannelConfiguration(BaseModel):
 	post_without_sound = BooleanField(default=False)
 	reactions = CharField(null=True)
 
+
 class NewJoin(BaseModel):
 	channel_id = IntegerField()
 	user_id = IntegerField()
 	approve = BooleanField(default=False)
+
+
+class FindChannel(BaseModel):
+	channel_id = IntegerField()
+	title = CharField()
+	link = CharField()
+	base_price = IntegerField()
+	min_price = IntegerField(null=True)
+	format = CharField(null=True)
+	views = IntegerField()
+	subscribers = IntegerField()
+	err = IntegerField(null=True)
+	contacts = CharField(null=True)
+	category = IntegerField()  # 47 default
+	active = BooleanField(default=True)
+
+class Basket(BaseModel):
+	user_id = IntegerField()
+	find_channel_id = IntegerField()
+
+class Saved(BaseModel):
+	user_id = IntegerField()
+	find_channel_id = IntegerField()
+
+
+class TinkoffOrder(BaseModel):
+	user_id = IntegerField()
+	order_id = CharField()
+	payment_id = CharField()
+	active = BooleanField(default=True)
+
+class Category(BaseModel):
+	name_ru = CharField()
+	name_en = CharField(null=True)
+
+class MyPost(BaseModel):
+	user_id = IntegerField()
+	post_id = IntegerField()
+
+class Placement(BaseModel):
+	user_id = IntegerField()
+	channel_id = IntegerField()
+	post_id = IntegerField()
+	status = CharField(default='CREATE')  # CREATE MODERATION MODERATION_SUCCESS MODERATION_FAIL POSTED
+
+class ChannelCode(BaseModel):
+	channel_id = IntegerField()
+	code = CharField()
 
 def main(argv):
 	# print(argv)
@@ -125,12 +183,32 @@ def main(argv):
 	# # database.drop_tables([Channel])
 	# database.drop_tables([SendedPost, Post, PostTime])
 	# database.create_tables([SendedPost, Post, PostTime])
-	# # database.drop_tables([Post])
-	# database.create_tables([Post])
-	database.drop_tables([Admin])
-	database.create_tables([Admin])
+	# database.drop_tables([FindChannel])
+	# database.create_tables([FindChannel])
+	# database.drop_tables([Basket])
+	# database.create_tables([Basket])
+	# database.drop_tables([FindChannel])
+	# database.create_tables([Basket])
+
+	# database.drop_tables([Saved])
+	# database.create_tables([Saved])
+	# database.drop_tables([FindChannel])
+	# database.create_tables([Placement])
+	database.create_tables([PostInfo])
+
+	# c = FindChannel.create(
+	# 	title='ПРОЖАРКА🔥',
+	# 	link='https://t.me/prozhara',
+	# 	base_price=10000,
+	# 	views=14828,
+	# 	subscribers=32726,
+	# 	category=13
+	# )
+	# c.save()
 
 	pass
+
+
 if __name__ == '__main__':
 	import sys
 	main(sys.argv)

@@ -1,4 +1,4 @@
-# from data.config import TG_STAT_TOKEN as token
+# from bot_data.config import TG_STAT_TOKEN as token
 token = '2cf289bf172b9d1a1a96f660b6b9d58e'
 
 import requests
@@ -32,7 +32,7 @@ def get_channel_subscriber(channel_id):
 
 	r = requests.get(base_url, params=params)
 
-	return r.json()
+	return r.json()['response'][0]['participants_count']
 
 def get_channel_views(channel_id):
 	base_url = 'https://api.tgstat.ru/channels/views'
@@ -41,7 +41,6 @@ def get_channel_views(channel_id):
 	params['channelId'] = channel_id
 
 	r = requests.get(base_url, params=params)
-
 	return r.json()
 
 def get_channel_avg_posts_reach(channel_id):
@@ -61,12 +60,12 @@ def get_channel_err(channel_id):
 	params['channelId'] = channel_id
 
 	r = requests.get(base_url, params=params)
-
-	return r.json()
+	print(r.json()['response'][0]['err'])
+	return r.json()['response'][0]['err']
 
 def main(argv):
-	parametr = 'https://t.me/lawproblemsru'
-	resp = get_channel_err(parametr)
+	parametr = '`https://t.me/lawproblemsru`'
+	resp = get_channel_stat(parametr)
 	print(resp)
 
 

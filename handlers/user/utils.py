@@ -251,6 +251,7 @@ async def send_post_to_channel_by_post_id(channel_id, user_id, post_id):
 
 	await send_post_to_channel(channel_id, user_id, data)
 
+
 def parse_time(data, plus):
 	from datetime import datetime
 
@@ -652,3 +653,11 @@ def swap_links_in_text(old_text: str, new_link):
 
 	return old_text
 
+
+def create_code_channel():
+	import random
+	strings = 'qwertyuiopadsfghjklzxcvbnm'
+	code = ''
+	for i in range(10):
+		code += random.choice(strings)
+	return code

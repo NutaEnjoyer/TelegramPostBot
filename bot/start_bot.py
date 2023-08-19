@@ -7,7 +7,7 @@ from aiogram.utils import executor
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-from data import config
+from bot_data import config
 from db import functions
 from db.models import PostTime, Post, SendedPost, Channel
 from handlers.user import utils

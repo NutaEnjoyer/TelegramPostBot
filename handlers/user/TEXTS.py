@@ -1,3 +1,7 @@
+from db.models import ChannelCode
+from handlers.user import utils as user_utils
+
+
 start = '''Добро пожаловать в бот для планирования публикаций и рекламы
 Для продолжения согласитесь с офертой'''
 
@@ -41,7 +45,7 @@ cabinet_menu = '''Кабинет'''
 
 cabinet_payment_data = '''Платежные данные'''
 
-balance_my_wallet = '''Баланс: 0'''
+balance_my_wallet = '''Баланс: 0\n\n<i>Вывод доступен только после подтверждения заказчиком выполнения заказа, либо через 24 часа с момента публикации материала</i>'''
 
 content_plan = '''Контент план'''
 
@@ -150,3 +154,16 @@ rewrite_post_main = '''Редактирование поста меню'''
 change_links_start = '''Пришлите свой креатив'''
 
 send_link = '''Пришлите ссылку в формате https://t.me/_____'''
+
+def ads_link(channel_id):
+	link = ChannelCode.get_or_none(channel_id=channel_id)
+	if link:
+		return link.code
+	code = user_utils.create_code_channel()
+	link = ChannelCode.create(channel_id=channel_id, code=code)
+	link.save()
+	return code
+
+def ads_link_text(channel_id):
+	link = ads_link(channel_id)
+	return f'<b>Ссылка для рекламы:\n https://t.me/FocachaADSbot?start=a{link}</b>'

@@ -8,6 +8,7 @@ class AddNewChannel(StatesGroup):
 	sendMessageFromChannel = State()
 
 class SettingSchedule(StatesGroup):
+	ADSLink = State()
 	SettingSchedule = State()
 	SetPostCount = State()
 	SetOutputTime = State()
@@ -79,3 +80,35 @@ class RewritePost(StatesGroup):
 class ChangeLinks(StatesGroup):
 	SendPost = State()
 	SendLink = State()
+
+class Find(StatesGroup):
+	SendKeyword = State()
+
+
+class SendKeyword(StatesGroup):
+	ChooseChannel = State()
+
+class Formation(StatesGroup):
+	SendPost = State()
+	PreSendPost = State()
+
+class Payments(StatesGroup):
+	SendINN = State()
+
+class SettingFilters(StatesGroup):
+	Main = State()
+	SetERR = State()
+	SetView = State()
+	SetSub = State()
+
+class SendLink(StatesGroup):
+	SendLink = State()
+
+class CabinetStats(StatesGroup):
+	Main = State()
+
+class AddMyPost(StatesGroup):
+	SendPost = State()
+
+class SendEditPost(StatesGroup):
+	EditText = State()
