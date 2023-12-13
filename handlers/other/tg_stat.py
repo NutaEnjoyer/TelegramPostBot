@@ -63,6 +63,16 @@ def get_channel_err(channel_id):
 	print(r.json()['response'][0]['err'])
 	return r.json()['response'][0]['err']
 
+def add_channel(channelName):
+	base_url = 'https://api.tgstat.ru/channels/add'
+	params = dict()
+	params['token'] = token
+	params['channelName'] = channelName
+
+	r = requests.post(base_url, params=params)
+
+	return r.json()
+
 def main(argv):
 	parametr = '`https://t.me/lawproblemsru`'
 	resp = get_channel_stat(parametr)

@@ -14,9 +14,12 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from db.models import TinkoffOrder
 
+from bot.start_semi_bot_container import bot
+
 scheduler = AsyncIOScheduler()
 
-bot = Bot(token=config.ADMIN_TOKEN, parse_mode='HTML', disable_web_page_preview=True)
+
+    
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 

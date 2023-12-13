@@ -5,3 +5,5 @@ requests~=2.31.0
 environs~=9.5.0
 pytz~=2023.3
 petrovna~=1.0.2
+telegraph~=2.2.0
+googletrans~=3.0.0

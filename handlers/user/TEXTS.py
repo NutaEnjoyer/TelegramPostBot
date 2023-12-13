@@ -1,13 +1,136 @@
 from db.models import ChannelCode
 from handlers.user import utils as user_utils
 
+from bot_data import config
+
+from db.models import * 
+
+postpone_rule = '''Отправь время, чтобы опубликовать пост сегодня.'''
+
+my_ord_success = '''<b>✅ ОРД успешно зарегистрирован!</b>'''
+
+my_ord_unsuccess = '''<b>❌ ОРД не зарегистрирован!</b>'''
+
+choose_cat = '🔎 Поиск каналов'
+
+choose_channel = 'Найденные каналы:'
+
+EMPTY_LINK = '''Оставить ссылку'''
+
+my_posts = '<b>Мои посты</b>'
+send_my_post = '''<b>Пришлите пост</b>'''
+
+async def my_advert_post(bot, placements):
+	text = f'''📆 Запланированные посты\n\n'''
+	count = 0
+	for i in placements:
+		count+=1
+		ad, wl = i
+		chat = await bot.get_chat(wl.channel_id)
+		t = f'''<b>{count}. {wl.human_date} | <a href='{chat.invite_link}'>{chat.title}</a> | {wl.price}₽</b>\n'''
+		text += t
+	return text
+
+def get_link_form(channel):
+	text = f'''<b>Пришлите ссылку для канала <a href='{channel.link}'>{channel.title}</a></b>'''
+	return text
+
+
+def basket_stat(subs, views, count, price):
+	text = f'''<b>Общая статистика корзины</b>
+
+	<b>Общая стоимость:</b> {price} ₽
+
+	<b>Количество просмотров:</b> {views}
+	<b>Количество подписчиков:</b> {subs}
+	
+	<b>Количество каналов:</b> {count}'''
+
+	return text
+
+
+
+def setting_filters(data=None):
+	text = '''Настройки фильтров'''
+
+	if data:
+		if data.get('err'):
+			err = f'''{(data.get('err') - 1) * 20}-{data.get('err') * 20}'''
+			text += f'''\n\nERR: {err}%'''
+		if data.get('views'):
+			views = f'''{data.get('views')[0]}-{data.get('views')[1]}'''
+			text += f'''\n\nПросмотры: {views}'''
+		if data.get('sub'):
+			views = f'''{data.get('sub')[0]}-{data.get('sub')[1]}'''
+			text += f'''\n\nПодписчики: {views}'''
+	return text
+
+async def placements_stat_basket(week, month, future, all, bot):
+	from collections import Counter
+	ids = [i[1].channel_id for i in all]
+	id_counts = Counter(ids)
+
+	unique_count = len(id_counts)
+
+	most_popular_id = id_counts.most_common(1)[0][0]
+	most_popular_count = id_counts.most_common(1)[0][1]
+	
+	if len(all) > 0:
+		chat = await bot.get_chat(most_popular_id)
+		channel_text = f'''<i>В {unique_count} разных каналах</i>
+		
+<b>Самый популярный <a href='{chat.invite_link}'>{chat.title}</a> {most_popular_count} раз</b>'''
+	else:
+		channel_text = ''
+	text = f'''<b>📊 Статистика рекламных размещений:
+
+	За неделю:
+	Количество: {len(week)}
+	Стоимость: {sum([i[1].price for i in week])}
+	
+	За месяц:
+	Количество: {len(month)}
+	Стоимость: {sum([i[1].price for i in month])}
+
+	Отложенно:
+	Количество: {len(future)}
+	Стоимость: {sum([i[1].price for i in future])}
+	
+	За все время:
+	Количество: {len(all)}
+	Стоимость: {sum([i[1].price for i in all])}
+
+
+</b>{channel_text}'''
+	return text
+
+def find_channel_form(channel):
+	cat = Category.get(id=channel.category)
+	text = f'''<b>Канал <a href='{channel.link}'>{channel.title}</a></b>
+
+<b>Стоимость:</b> {channel.base_price} ₽
+
+<b>ERR:</b> {channel.err}%
+
+<b>Количество просмотров:</b> {channel.views}
+<b>Количество подписчиков:</b> {channel.subscribers}
+
+<b>Тематика:</b> <code>{cat.name_ru}</code>'''
+
+	return text
 
 start = '''Добро пожаловать в бот для планирования публикаций и рекламы
 Для продолжения согласитесь с офертой'''
 
 old_start = '''Стартовое меню'''
 
+adv_start = '''🏠 Рекламное меню'''
+
 access_start_offer = 'Успешно подтверждено!'
+
+ord_rules_message = 'Для работы с ботом необходимо зарегистрироваться в ОРД'
+
+ord_choose_type = 'Выберите тип организации'
 
 bot_doesnot_work = '''Бот не работает'''
 
@@ -45,7 +168,7 @@ cabinet_menu = '''Кабинет'''
 
 cabinet_payment_data = '''Платежные данные'''
 
-balance_my_wallet = '''Баланс: 0\n\n<i>Вывод доступен только после подтверждения заказчиком выполнения заказа, либо через 24 часа с момента публикации материала</i>'''
+balance_my_wallet = '''<b>Баланс: {balance}</b>\n\n<i>Вывод доступен только после подтверждения заказчиком выполнения заказа, либо через 24 часа с момента публикации материала</i>'''
 
 content_plan = '''Контент план'''
 
@@ -79,7 +202,7 @@ error_post_message_to_channel = '''Не удалось опубликовать 
 
 message_posted_success = '''Сообщение успешно опубликовано в канале <b>{title}</b>'''
 
-album_edit = '''Album'''
+album_edit = '''⚙️  Настройка сообщения ✏️'''
 
 postpone_rule = '''Отправь время, чтобы опубликовать пост сегодня.
 
@@ -114,6 +237,8 @@ swap_keyboard_rules = '''Отправь мне список URL-кнопок и/
 
 
 Реакции не могут идти в одном рядке с урл-кнопками и должны быть на последней строке'''
+
+swap_edit_rules = '<b>Пришлите новое медиа</b>'
 
 error_parse_keyboard = '''Ошибка парсинга клавиатуры'''
 
@@ -166,4 +291,126 @@ def ads_link(channel_id):
 
 def ads_link_text(channel_id):
 	link = ads_link(channel_id)
-	return f'<b>Ссылка для рекламы:\n https://t.me/FocachaADSbot?start=a{link}</b>'
+	return f'<b>Ссылка для рекламы:\n {config.BUY_BOT_URL}?start=a{link}</b>'
+
+def register_organization(data, user_id, org_id):
+	text = f'''<b>Новая организация
+
+	Название: {data['name']}
+	Тип: {data['type']}
+	ИНН: {data['inn']}
+	ID Пользователя: {user_id}
+	ID Организации в ОРД: {org_id}
+
+	Платформа:
+	Название: {data['title']}
+	URL: {data['url']}
+	</b>'''
+
+	return text 
+
+def register_client_organization(data, user_id, org_id):
+	text = f'''<b>Новая организация
+
+	Название: {data['name']}
+	Тип: {data['type']}
+	ИНН: {data['inn']}
+	ID Пользователя: {user_id}
+	ID Организации в ОРД: {org_id}
+	
+	</b>'''
+
+	return text 
+
+def new_platform(user_id, name, url):
+	text = f'''<b>Новая Платформа
+
+	ID Пользователя: {user_id}
+
+	Платформа:
+	Название: {name}
+	URL: {url}
+	</b>'''
+
+	return text 
+
+def new_contract(user_id, admin_id, price, contract_id, number):
+	text = f'''<b>Новый контракт
+
+	ID Клиента: {user_id}
+	ID Контрагента: {admin_id}
+
+	Сумма: {price}
+	Номер контракта: {number}
+
+	ID Контракта: {contract_id}
+	</b>'''
+
+	return text 
+
+def get_full_name(short_name):
+    if short_name == 'ffl':
+        return 'Иностранное физическое лицо'
+    elif short_name == 'ful':
+        return 'Иностранное юридическое лицо'
+    elif short_name == 'ip':
+        return 'Индивидуальный предприниматель'
+    elif short_name == 'fl':
+        return 'Физическое лицо'
+    elif short_name == 'ul':
+        return 'Юридическое лицо'
+    else:
+        return 'Неизвестное значение'
+
+def my_ord_form(data):
+	text = f'''<b>Информация о вашей организациии
+
+	Название: {data['name']}
+	Тип: {get_full_name(data['type'])}
+	ИНН: {data['inn']}
+	ID Организации в ОРД: {data['id']}
+
+	</b>'''
+
+	return text 
+
+def stats(week, month, all):
+	text = f'''<b>📊 Статистика рекламных размещений:
+
+	За неделю:
+	Количество: {len(week)}
+	Стоимость: {sum([i.price for i in week])}
+	
+	За месяц:
+	Количество: {len(month)}
+	Стоимость: {sum([i.price for i in month])}
+	
+	За все время:
+	Количество: {len(all)}
+	Стоимость: {sum([i.price for i in all])}
+
+</b>'''
+	
+	return text
+
+def placements_stat(week, month, future, all):
+	text = f'''<b>📊 Статистика рекламных размещений:
+
+	За неделю:
+	Количество: {len(week)}
+	Стоимость: {sum([i for i in week])}
+	
+	За месяц:
+	Количество: {len(month)}
+	Стоимость: {sum([i for i in month])}
+
+	Отложенно:
+	Количество: {len(future)}
+	Стоимость: {sum([i for i in future])}
+	
+	За все время:
+	Количество: {len(all)}
+	Стоимость: {sum([i for i in all])}
+
+</b>'''
+	return text

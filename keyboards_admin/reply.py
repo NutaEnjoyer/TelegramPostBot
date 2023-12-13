@@ -1,4 +1,5 @@
 from aiogram import types
+from handlers.admin import TEXTS
 
 def main_keyboard():
 	keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -7,7 +8,8 @@ def main_keyboard():
 	b2 = types.KeyboardButton(text='ВЕСЬ ПРАЙС')
 	b3 = types.KeyboardButton(text='⭐️ Избранное')
 	b4 = types.KeyboardButton(text='👤 Личный кабинет')
-	b5 = types.KeyboardButton(text='🔗 Замена ссылок')
+	# b5 = types.KeyboardButton(text='🔗 Замена ссылок')
+	b5 = types.KeyboardButton(text='🔗 Мои посты')
 	b6 = types.KeyboardButton(text='👩‍💻 Написать нам')
 	b7 = types.KeyboardButton(text='🛒 Корзина')
 
@@ -70,5 +72,14 @@ def only_home():
 	b4 = types.KeyboardButton(text='🏠 В меню')
 
 	keyboard.add(b4)
+
+	return keyboard
+
+def empty_link():
+	keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+
+	b = types.KeyboardButton(text=TEXTS.EMPTY_LINK)
+
+	keyboard.add(b)
 
 	return keyboard

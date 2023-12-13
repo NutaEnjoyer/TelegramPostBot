@@ -13,19 +13,38 @@ from db.models import PostTime, Post, SendedPost, Channel
 from handlers.user import utils
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from bot.start_bot_container import bot
+
 scheduler = AsyncIOScheduler()
 
-bot = Bot(token=config.ADMIN_TOKEN, parse_mode='HTML', disable_web_page_preview=True)
+
+# if config.DEBUG: 
+#     bot = Bot(token=config.ADS_BOT_TOKEN_DEBUG, parse_mode='HTML', disable_web_page_preview=True)
+# else:
+#     bot = Bot(token=config.ADS_BOT_TOKEN, parse_mode='HTML', disable_web_page_preview=True)
+    
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 
 async def do_some():
     posts = PostTime.select().where(PostTime.active)
     for post_time in posts:
-        if time.time() >= post_time.time:
-            post = functions.get_post_by_id(post_time.id)
-            if post:
-                await utils.send_post(post, post_time.user_id)
+        now_time = time.time()
+        if now_time >= post_time.time:
+            print('1')
+            if now_time - post_time.time < 100:
+                print('2')
+                if not await utils.is_no_paid(post_time):
+                    print('3')
+                    post = functions.get_post_by_id(post_time.id)
+                    if post:
+                        print(post)
+                        mes = await utils.send_post(post, post_time.user_id, post_time.id)
+                        print('4')
+                        if utils.is_ad(post_time):
+                            await utils.new_contract(post_time, mes)
+                            utils.new_ad_placement(post_time)
+
 
             post_time.active = False
             post_time.save()
@@ -37,7 +56,10 @@ async def do_some():
         if post.delete_time < time.time():
             print(post.id)
             try:
-                sended_message = SendedPost.get(post_id=post.id)
+                sended_message = SendedPost.get_or_none(post_id=post.id)
+                if not sended_message:
+                    post.delete_instance()
+                    continue
                 channel = Channel.get(id=sended_message.channel_id)
                 await bot.delete_message(channel.channel_id, sended_message.message_id)
                 sended_message.delete_instance()
