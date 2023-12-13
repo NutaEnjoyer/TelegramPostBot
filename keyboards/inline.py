@@ -252,11 +252,15 @@ def add_markup_send_post(start_markup=None, is_album=False, context=None):
 
 	context = PostInfo.get_or_none(id=context) if context else None
 
+	print(context.__dict__)
+
+	price = f': {context.price}' if context.price else ''
+
 	b1 = types.InlineKeyboardButton(text='Изменить текст', callback_data='edit_text')
 	b2 = types.InlineKeyboardButton(text='Изменить медиа', callback_data='edit_media')
 	b3 = types.InlineKeyboardButton(text='URL-кнопки', callback_data='swap_keyboard')
 	b4 = types.InlineKeyboardButton(text='Скрытое продолжение', callback_data='hidden_sequel')
-	b15 = types.InlineKeyboardButton(text='Цена', callback_data='edit_price')
+	b15 = types.InlineKeyboardButton(text=f'Цена{price}', callback_data='edit_price')
 	if context is None or context.with_notification:
 		b5 = types.InlineKeyboardButton(text='Уведомления ✅', callback_data='swap_notification')
 	else:

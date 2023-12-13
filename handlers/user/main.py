@@ -1232,7 +1232,7 @@ async def cancel_swap_keyboard(message: types.Message, state: FSMContext):
 	await user_state.AddPost.SendPost.set()
 	await state.update_data(data=data)
 
-	await bot.delete_message(message.from_user.id,  message_id[0])
+	# await bot.delete_message(message.from_user.id,  message_id[0])
 	await bot.delete_message(message.from_user.id,  message_id[1])
 
 	data = await state.get_data()
@@ -1241,10 +1241,10 @@ async def cancel_swap_keyboard(message: types.Message, state: FSMContext):
 
 	data['reply_markup'] = markup
 
-	await utils.send_post_to_user(message.from_user.id, data)
+	# await utils.send_post_to_user(message.from_user.id, data)
 	await bot.delete_message(message.from_user.id, message.message_id)
 
-	await message.answer('Продолжай отправлять сообщения.', reply_markup=reply.send_post())
+	# await message.answer('Продолжай отправлять сообщения.', reply_markup=reply.send_post())
 
 
 async def cancel_swap_media(call: types.CallbackQuery, state: FSMContext):
@@ -3613,9 +3613,10 @@ async def formations_send_post_edit_text(call: types.CallbackQuery, state: FSMCo
 async def formations_send_post_edit_price(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
 	await state.finish()
-	await user_state.EditModerationPost.SendPrice.set()
-	mes = await call.message.edit_text('Пришлите новый прайс', reply_markup=inline.only_back())
+	await user_state.AddPost.SendPrice.set()
+	mes = await call.message.answer('Пришлите новый прайс', reply_markup=inline.only_back())
 	await state.update_data(data, message_to_delete=[mes.message_id])
+	
 
 async def formations_send_post_edit_keyboard(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
@@ -3676,7 +3677,7 @@ async def formations_send_post_send_price(message: types.Message, state: FSMCont
 	p = PostInfo.get(id=data['info'])
 	p.price = int(text)
 	p.save()
-	await bot.edit_message_reply_markup(chat_id=message.from_user.id, message_id=data['post_message_id'], reply_markup=inline.add_markup_send_post(context=p.id))
+	await bot.edit_message_reply_markup(chat_id=message.from_user.id, message_id=data['album_message'], reply_markup=inline.add_markup_send_post(context=p.id))
 
 	deleted = True
 	i = 1
@@ -3687,6 +3688,8 @@ async def formations_send_post_send_price(message: types.Message, state: FSMCont
 		except Exception:
 			i += 1
 
+	await user_state.AddPost.SendPost.set()
+	await state.update_data(data=data)
 
 async def formations_send_post_send_text(message: types.Message, state: FSMContext):
 	text = message.html_text
@@ -4558,6 +4561,9 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_message_handler(cancel_swap_keyboard, state=user_state.AddPost.SwapKeyboard, text='Отмена')
 	dp.register_callback_query_handler(cancel_swap_media, state=user_state.AddPost.SwapMedia, text='back')
 	dp.register_message_handler(swap_keyboard_handler, state=user_state.AddPost.SwapKeyboard, content_types=['text'])
+	dp.register_message_handler(formations_send_post_send_price, state=user_state.AddPost.SendPrice, content_types=['text'])
+	dp.register_callback_query_handler(cancel_swap_media, state=user_state.AddPost.SendPrice, text='back')
+
 	dp.register_message_handler(swap_media_handler, state=user_state.AddPost.SwapMedia, content_types=types.ContentTypes.ANY)
 	dp.register_callback_query_handler(swap_keyboard, state=user_state.AddPost.SendPost, text='swap_keyboard')
 	dp.register_callback_query_handler(send_post_copy, state=user_state.AddPost.SendPost, text='copy')

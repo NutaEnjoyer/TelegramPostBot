@@ -423,7 +423,9 @@ async def send_message_dicts_file_path(dicts, chat_id, info=None, config=None):
 
 def create_dict_object(data, user_id):
 	dicts = data['dicts']
-	dictObject = DictObject.create(owner_id=user_id, price=data.get('price'))
+	post_info = PostInfo.get(id=data['info'])
+	price = data.get('price') if data.get('price') else post_info.price
+	dictObject = DictObject.create(owner_id=user_id, price=price)
 	dictObject.save()
 	for dict in dicts:
 		object = Dict.create(
@@ -454,6 +456,7 @@ async def send_post_to_channel(channel_id, user_id, data, info=None, config=None
 		channel = Channel.get(id=data.get('channel_id'))
 		config = ChannelConfiguration.get(channel_id=channel.channel_id)
 		print('CONFIG SEND POST TO CHANNEL: ', config.id)
+	data['info']  = p.id
 	print('P: ', p.id, p.disable_web_preview)
 	to_return = await send_message_dicts(dicts, channel_id, p, config, bot)
 	chat = await bot.get_chat(channel_id)
