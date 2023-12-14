@@ -8,6 +8,7 @@ ADS_BOT_TOKEN_DEBUG = env.str('ADS_BOT_TOKEN_DEBUG')
 BUY_BOT_TOKEN = env.str('BUY_BOT_TOKEN')
 BUY_BOT_TOKEN_DEBUG = env.str('BUY_BOT_TOKEN_DEBUG')
 TG_STAT_TOKEN = env.str('TG_STAT_TOKEN')
+WITHDRAW_MAN_URL = env.str('WITHDRAW_MAN_URL')
 categories = env.list('CATEGORIES')
 TRASH_CHANNEL_ID = int(env.str('TRASH_CHANNEL_ID'))
 CONTENT_ID = int(env.str('CONTENT_ID'))
@@ -28,6 +29,7 @@ MONTHS = [None, 'января', 'февраля', 'марта', 'апреля', 
 DEBUG = int(env.str('DEBUG'))
 
 YOOKASSA_TOKEN = env.str('YOOKASSA_TOKEN')
+YOOKASSA_TOKEN_2 = env.str('YOOKASSA_TOKEN_2')
 YOOKASSA_TOKEN_DEBUG = env.str('YOOKASSA_TOKEN_DEBUG')
 
 if DEBUG:

@@ -13,6 +13,8 @@ from db.models import *
 from handlers.user import TEXTS
 from keyboards import inline
 
+from handlers.other import tg_stat
+
 from bot.start_bot_container import bot
 from bot.start_semi_bot_container import bot as user_bot
 
@@ -82,15 +84,26 @@ def is_ad(post_time):
 	advert_post = AdvertPost.get_or_none(post_time_id=post_time.id)
 	if not advert_post:
 		return False
+	return True
 
-def new_ad_placement(post_time):
+def new_ad_placement(post_time, message_id=None):
 	advert_post = AdvertPost.get_or_none(post_time_id=post_time.id)
 	wl = WaitList.get(id=advert_post.wait_list_id)
+
+	dv = DeferredVerification.create(
+		admin_id = wl.admin_id,
+		user_id = wl.user_id,
+		price = wl.price,
+		channel_id = wl.channel_id,
+		post_id = message_id,
+		start_time = wl.seconds,
+		finish_time = wl.seconds + 79_200
+	)
+	dv.save()
 
 	ad_placement = AdPlacement.create(user_id=wl.user_id, admin_id=wl.admin_id, price=wl.price, time=wl.seconds)
 	ad_placement.save()
 	
-
 async def is_no_paid(post_time):
 	advert_post = AdvertPost.get_or_none(post_time_id=post_time.id)
 	result = False
@@ -166,6 +179,25 @@ async def new_contract(post_time, message):
 	bot_info = await bot.get_me()
 	message_link = f"https://t.me/{bot_info.username}?start={channel.channel_id}_{message}"
 	await register_creative(contract_id=contract_id, media=wl.media, text=wl.html_text, link=message_link)
+
+async def dv_proccess(dv):
+	dv.active = False
+	dv.save()
+	views = tg_stat.get_post_views(dv.channel_id, dv.post_id)
+	print(f"{views=}")
+	# channel = Channel.get(channel_id=dv.channel_id)
+	chat = await bot.get_chat(dv.channel_id)
+	channel = f'''<a href="{chat.invite_link}">{chat.title}</a>'''
+	print(channel)
+	text = f'''<b>🎉🎉 Прошло 24 часа после публикации поста в канале {channel} 🎉🎉
+
+💵 Цена: {dv.price} ₽ 
+
+👁 Кол-во просмотров: {views} ₽
+
+📊Результат: {round(dv.price/views, 2) if views else 0} ₽/пр.</b>'''
+
+	await user_bot.send_message(dv.user_id, text)
 
 async def check_user_subscription(channel_id: int, admin_id: int) -> bool:
 	chat_member = await bot.get_chat_member(chat_id=channel_id, user_id=admin_id)
@@ -453,6 +485,7 @@ async def send_post_to_channel(channel_id, user_id, data, info=None, config=None
 		config = config
 	else:
 		p = PostInfo.get(id=data['info'])
+		os.remove()
 		channel = Channel.get(id=data.get('channel_id'))
 		config = ChannelConfiguration.get(channel_id=channel.channel_id)
 		print('CONFIG SEND POST TO CHANNEL: ', config.id)
@@ -1018,9 +1051,6 @@ async def send_post(data, user_id, post_id):
 	post_time = PostTime.get(id=post_id)
 	info = PostInfo.get(post_id=post_time.post_id)
 	config = ChannelConfiguration.get(channel_id=channel.channel_id)
-	# if data['reaction_with'] is False:
-	# 	data['reaction_with'] = None
-	# mes_id = await send_post_to_channel(channel_id=channel.channel_id, user_id=user_id, data=data, info=info, config=config)
 
 	try:
 		mes_id = await send_post_to_channel(channel_id=channel.channel_id, user_id=user_id, data=data, info=info, config=config)

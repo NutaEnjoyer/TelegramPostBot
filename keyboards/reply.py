@@ -33,7 +33,7 @@ def main_keyboard():
 	keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 	b1 = types.KeyboardButton('Публикации')
 	b2 = types.KeyboardButton('Настройки')
-	b3 = types.KeyboardButton('Реклама и ВП')
+	b3 = types.KeyboardButton('Реклама')
 	b4 = types.KeyboardButton('Кабинет')
 	b5 = types.KeyboardButton('Настройка расписания')
 

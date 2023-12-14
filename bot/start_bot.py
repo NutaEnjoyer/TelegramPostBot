@@ -9,7 +9,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from bot_data import config
 from db import functions
-from db.models import PostTime, Post, SendedPost, Channel
+from db.models import *
 from handlers.user import utils
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -31,25 +31,20 @@ async def do_some():
     for post_time in posts:
         now_time = time.time()
         if now_time >= post_time.time:
-            print('1')
             if now_time - post_time.time < 100:
-                print('2')
                 if not await utils.is_no_paid(post_time):
-                    print('3')
                     post = functions.get_post_by_id(post_time.id)
                     if post:
-                        print(post)
                         mes = await utils.send_post(post, post_time.user_id, post_time.id)
-                        print('4')
                         if utils.is_ad(post_time):
                             await utils.new_contract(post_time, mes)
-                            utils.new_ad_placement(post_time)
+                            utils.new_ad_placement(post_time, mes)
 
 
             post_time.active = False
             post_time.save()
 
-    posts = Post.select()
+    posts = DictObject.select()
     for post in posts:
         if post.delete_time is None:
             continue
@@ -67,9 +62,15 @@ async def do_some():
             except Exception as e:
                 print(e)
 
+    dvs = DeferredVerification.select().where((DeferredVerification.active) &
+                                             (DeferredVerification.finish_time < time.time()))
+    for dv in dvs:
+        print(f"{dv.id=}")
+        await utils.dv_proccess(dv)
+    
 
 def schedule_job():
-    scheduler.add_job(do_some, 'interval', seconds=5)
+    scheduler.add_job(do_some, 'interval', seconds=8)
 
 async def __on_start_up(dp: Dispatcher) -> None:
     from filters import register_all_filters

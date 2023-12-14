@@ -4,6 +4,13 @@ from aiogram import types
 from bot_data import config
 from db.models import Dict, DictObject, Moderator, ReactionsKeyboard, Reaction, Button, Post, FindChannel, Category, Saved, Basket, PostInfo
 
+def withdraw_men():
+	keyboard = types.InlineKeyboardMarkup()
+	b1 = types.InlineKeyboardButton(text='Вывести 📤', url=config.WITHDRAW_MAN_URL)
+	keyboard.add(b1)
+
+	return keyboard
+
 def moder(id):
 	keyboard = types.InlineKeyboardMarkup()
 	b1 = types.InlineKeyboardButton(text='Удалить', callback_data=f'delete_moder${id}')
@@ -1259,6 +1266,19 @@ def moder_post(wl_id):
 
 	b1 = types.InlineKeyboardButton(text='✅ Принять', callback_data=f'moder_post_yes${wl_id}')
 	b2 = types.InlineKeyboardButton(text='❌ Отказать', callback_data=f'moder_post_no${wl_id}')
+	b3 = types.InlineKeyboardButton(text='⏳ Другое время ⏳', callback_data=f'moder_post_time${wl_id}')
+
+	keyboard.add(b1, b2)
+	keyboard.add(b3)
+
+	return keyboard
+
+
+def bot_moder_post(wl_id):
+	keyboard = types.InlineKeyboardMarkup()
+
+	b1 = types.InlineKeyboardButton(text='✅ Принять', callback_data=f'bot_moder_post_yes${wl_id}')
+	b2 = types.InlineKeyboardButton(text='❌ Отказать', callback_data=f'bot_moder_post_no${wl_id}')
 	b3 = types.InlineKeyboardButton(text='⏳ Другое время ⏳', callback_data=f'moder_post_time${wl_id}')
 
 	keyboard.add(b1, b2)

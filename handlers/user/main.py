@@ -435,7 +435,34 @@ async def choose_channel_content_plan(call: types.CallbackQuery, state: FSMConte
 
 async def balance_my_wallet_handler(message: types.Message, state: FSMContext):
 	wallet = Wallet.get(user_id=message.from_user.id)
-	await message.answer(TEXTS.balance_my_wallet.format(balance=wallet.balance))
+	ads = AdvertPost.select().where((AdvertPost.active) & (AdvertPost.is_paid))
+	wls = []
+	for ad in ads: 
+		wl = WaitList.get_or_none(id=ad.wait_list_id)
+		if not wl:
+			print(ad.wait_list_id)
+			continue
+		if wl.admin_id == message.from_user.id:
+			wls.append(wl)
+	wls_sum = sum([i.price for i in wls])
+	defs = DeferredVerification.select().where((DeferredVerification.active) & (DeferredVerification.admin_id==message.from_user.id))
+	defs_sum = sum([i.price for i in defs])
+	freeze_balance = wls_sum + defs_sum
+	wallet = Wallet.get(user_id=message.from_user.id)
+	balance = wallet.balance
+
+	print(f'{wls_sum=}')
+	print(f'{defs_sum=}')
+
+	text = f'''👤 <b>Пользователь <a href="{message.chat.user_url}">{message.chat.first_name}</a>
+	
+💰 Баланс: {balance}
+❄️ Замороженно: {freeze_balance}
+
+💸 Доступно к выводу: {balance - freeze_balance}</b>
+
+<i>Вывод доступен только после подтверждения заказчиком выполнения заказа, либо через 24 часа с момента публикации материала</i>'''
+	await message.answer(text, reply_markup=inline.withdraw_men())
 
 async def my_statistic_handler(message: types.Message, state: FSMContext):
 	await user_state.CabinetStats.Main.set()
@@ -3045,6 +3072,7 @@ async def moder_post_yes(call: types.CallbackQuery, state: FSMContext):
 
 			add_html_text = True
 
+		file_id = None
 		if dict.file_path:
 			with open(dict.file_path, 'rb') as file:
 				match dict.type:
@@ -3063,6 +3091,8 @@ async def moder_post_yes(call: types.CallbackQuery, state: FSMContext):
 					case 'document':
 						mes = await bot.send_document(config.TRASH_CHANNEL_ID, file)
 						file_id = mes.document.file_id
+					case _:
+						file_id = None
 
 		dict.file_id = file_id
 		dict.save()
@@ -3123,9 +3153,11 @@ async def wl_send_time(message: types.Message, state: FSMContext):
 
 	channel = FindChannel.get(channel_id=wl.channel_id)
 	if wl.from_admin_bot:
+		print('init max')
 		await bot.send_message(wl.user_id, f'''Администратор <a href='{channel.link}'>{channel.title}</a> предлагает изменить время публикации на\n{human_date}''',
 							  reply_markup=inline.client_moder_post_bot(wl.id))
 	else:
+		print('init false')
 		await user_bot.send_message(wl.user_id, f'''Администратор <a href='{channel.link}'>{channel.title}</a> предлагает изменить время публикации на\n{human_date}''',
 							  reply_markup=inline.client_moder_post(wl.id))
 	await state.finish()
@@ -3167,7 +3199,7 @@ async def bot_moder_post_yes(call: types.CallbackQuery, state: FSMContext):
 	advert_post = AdvertPost.create(post_time_id=post_time.id, wait_list_id=wl.id)
 	await bot.send_message(wl.admin_id, 'Новое рекламное сообщение отложено')
 	mes = await bot.send_invoice(chat_id=wl.user_id, title=f"Реклама {channel.title}", description="Оплата рекламы. Сервис FOCACHA.",
-						 payload=str(advert_post.id), provider_token=config.YOOKASSA_TOKEN, currency="RUB", start_parameter="",
+						 payload=str(advert_post.id), provider_token=config.YOOKASSA_TOKEN_2, currency="RUB", start_parameter="",
 						 prices = [
 							 {
 								 'label': 'руб.',
@@ -3559,17 +3591,17 @@ async def formation_post_send_link(message: types.Message, state: FSMContext):
 			if moder:
 				themes = schedule.confirm_themes
 				if not themes:
-					await bot.send_message(moder_id, f"Модерация\n\n{info}\n\nЛюбая тематика", reply_markup=inline.moder_post(wl.id))
+					await bot.send_message(moder_id, f"Модерация\n\n{info}\n\nЛюбая тематика", reply_markup=inline.bot_moder_post(wl.id))
 				else:
 					themes_id = [int(i) for i in themes.split('$')]
 					cats = ''
 					for theme_id in themes_id:
 						cat = Category.get(id=theme_id)
 						cats += f'{cat.name_ru}\n'
-					await bot.send_message(moder_id, f"Модерация\n\n{info}\n\nТематики:\n\n{cats}", reply_markup=inline.moder_post(wl.id))
+					await bot.send_message(moder_id, f"Модерация\n\n{info}\n\nТематики:\n\n{cats}", reply_markup=inline.bot_moder_post(wl.id))
 
 			else:
-				await bot.send_message(moder_id, f"Модерация\n\n{info}", reply_markup=inline.moder_post(wl.id))
+				await bot.send_message(moder_id, f"Модерация\n\n{info}", reply_markup=inline.bot_moder_post(wl.id))
 
 			i += 1
 			c.delete_instance()
@@ -4460,6 +4492,61 @@ async def choose_my(call: types.CallbackQuery, state: FSMContext):
 
 	await state.update_data(dicts=dicts, mess=[])
 
+async def check_user_handler(message: types.Message, state: FSMContext):
+	await user_state.CheckUser.SendMessage.set()
+	await message.answer("<b>🔍 Перешлите ID или сообщение пользователя для проверки 🔎</b>", reply_markup=inline.only_back())
+
+async def send_check_user_handler(message: types.Message, state: FSMContext):
+	try:
+		chat = await bot.get_chat(int(message.text))
+	except Exception as e:
+		chat = None
+	if not chat:
+		try:
+			chat = await bot.get_chat(message.forward_from.id)
+		except Exception as e:
+			chat = None
+
+	if not chat: 
+		await message.answer('<b>❌ Пользователь не найден или его профиль закрыт ❌</b>')
+		return
+
+	ads = AdvertPost.select().where((AdvertPost.active) & (AdvertPost.is_paid))
+	wls = []
+	for ad in ads: 
+		wl = WaitList.get_or_none(id=ad.wait_list_id)
+		if not wl:
+			print(ad.wait_list_id)
+			continue
+		if wl.admin_id == chat.id:
+			wls.append(wl)
+	wls_sum = sum([i.price for i in wls])
+	defs = DeferredVerification.select().where((DeferredVerification.active) & (DeferredVerification.admin_id==chat.id))
+	defs_sum = sum([i.price for i in defs])
+	freeze_balance = wls_sum + defs_sum
+	wallet = Wallet.get(user_id=chat.id)
+	balance = wallet.balance
+
+	print(f'{wls_sum=}')
+	print(f'{defs_sum=}')
+
+	text = f'''👤 <b>Пользователь <a href="{chat.user_url}">{chat.first_name}</a>
+	
+💰 Баланс: {balance}
+❄️ Замороженно: {freeze_balance}
+
+💸 Доступно к выводу: {balance - freeze_balance}</b>'''
+
+	await message.answer(text)
+	await state.finish()
+
+async def close_check_user_handler(call: types.CallbackQuery, state: FSMContext):
+	await state.finish()
+	await call.message.delete()
+	try:
+		await bot.delete_message(call.from_user.id, call.message.message_id-1)
+	except Exception as e:
+		pass
 
 def register_user_handlers(dp: Dispatcher):
 	dp.register_pre_checkout_query_handler(proccess_pre_checkout_query)
@@ -4468,6 +4555,9 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_message_handler(start_handler, commands=['start', 'restart'], state='*')
 	dp.register_message_handler(support_handler, commands=['support'], state='*')
 	dp.register_message_handler(work_handler, commands=['work'], state='*')
+	dp.register_message_handler(check_user_handler, commands=['check_user'], state='*')
+	dp.register_message_handler(send_check_user_handler, content_types=types.ContentTypes.ANY, state=user_state.CheckUser.SendMessage)
+	dp.register_callback_query_handler(close_check_user_handler, text='back', state=user_state.CheckUser.SendMessage)
 	dp.register_message_handler(send_answer_start_offer_access,
 								state=user_state.SendSmallAnswer.sendAnswerStartOfferAccess)
 	dp.register_message_handler(add_channel_end_cancel, state=user_state.Settings.sendMessageFromChannel,
@@ -4478,7 +4568,7 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_message_handler(start_handler, text=['Меню', '🏠 В меню'], state='*')
 	dp.register_message_handler(publications_handler, text='Публикации', state='*')
 	dp.register_message_handler(settings_handler, text='Настройки', state='*')
-	dp.register_message_handler(advert_handler, text='Реклама и ВП', state='*')
+	dp.register_message_handler(advert_handler, text='Реклама', state='*')
 	dp.register_message_handler(cabinet_handler, text='Кабинет', state='*')
 	dp.register_message_handler(cabinet_payment_data_handler, text='Платежные данные', state='*')
 	dp.register_message_handler(balance_my_wallet_handler, text='Баланс лицевого счета', state='*')

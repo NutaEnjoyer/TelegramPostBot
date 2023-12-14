@@ -234,9 +234,19 @@ class Dict(BaseModel):
 class ChannelBlock(BaseModel):
 	channel_id = IntegerField()
 
+class DeferredVerification(BaseModel):
+	admin_id = IntegerField()
+	user_id = IntegerField()
+	price = IntegerField()
+	channel_id = IntegerField()
+	post_id = IntegerField()
+	start_time = IntegerField()
+	finish_time = IntegerField()
+	active = BooleanField(default=True)
+
 def main(argv):
-	database.drop_tables([PostInfo])
-	database.create_tables([PostInfo])
+	database.drop_tables([DeferredVerification])
+	database.create_tables([DeferredVerification])
 	# database.create_tables([DictObject])
 
 	pass

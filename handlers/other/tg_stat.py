@@ -60,6 +60,8 @@ def get_channel_err(channel_id):
 	params['channelId'] = channel_id
 
 	r = requests.get(base_url, params=params)
+	print(r)
+	print(r.json())
 	print(r.json()['response'][0]['err'])
 	return r.json()['response'][0]['err']
 
@@ -70,12 +72,34 @@ def add_channel(channelName):
 	params['channelName'] = channelName
 
 	r = requests.post(base_url, params=params)
-
 	return r.json()
 
+def get_post_views(channel_id, post_id):
+	base_url = 'https://api.tgstat.ru/posts/get'
+	params = dict()
+	params['token'] = token
+	params['postId'] = f"https://t.me/{str(channel_id)[4:]}/{post_id}"
+
+	r = requests.get(base_url, params=params)
+	js = r.json()
+	if js['status'] == 'error':
+		if js['error'] == 'post_not_found':
+			params = dict()
+			params['token'] = token
+			params['postId'] = f"https://t.me/c/{str(channel_id)[4:]}/{post_id}"
+
+			r = requests.get(base_url, params=params)
+
+	try:
+		js = r.json()
+		print(r)
+		print(js)
+		return js["response"]["views"]
+	except Exception as e:
+		return 0
+
 def main(argv):
-	parametr = '`https://t.me/lawproblemsru`'
-	resp = get_channel_stat(parametr)
+	resp = get_post_views(-1001868668014, 143)
 	print(resp)
 
 

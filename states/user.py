@@ -150,3 +150,6 @@ class WlNewTime(StatesGroup):
 class Admin(StatesGroup):
 	SendMail = State()
 	SendBlock = State()
+
+class CheckUser(StatesGroup):
+	SendMessage = State()
