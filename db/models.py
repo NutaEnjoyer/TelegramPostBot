@@ -242,6 +242,7 @@ class DeferredVerification(BaseModel):
 	post_id = IntegerField()
 	start_time = IntegerField()
 	finish_time = IntegerField()
+	from_admin_bot = BooleanField(default=False)
 	active = BooleanField(default=True)
 
 def main(argv):

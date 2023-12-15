@@ -97,7 +97,8 @@ def new_ad_placement(post_time, message_id=None):
 		channel_id = wl.channel_id,
 		post_id = message_id,
 		start_time = wl.seconds,
-		finish_time = wl.seconds + 79_200
+		finish_time = wl.seconds + 79_200,
+		from_admin_bot=wl.from_admin_bot
 	)
 	dv.save()
 
@@ -197,7 +198,12 @@ async def dv_proccess(dv):
 
 📊Результат: {round(dv.price/views, 2) if views else 0} ₽/пр.</b>'''
 
-	await user_bot.send_message(dv.user_id, text)
+	if dv.from_admin_bot:
+		await bot.send_message(dv.user_id, text)
+	else:
+		await user_bot.send_message(dv.user_id, text)
+
+
 
 async def check_user_subscription(channel_id: int, admin_id: int) -> bool:
 	chat_member = await bot.get_chat_member(chat_id=channel_id, user_id=admin_id)

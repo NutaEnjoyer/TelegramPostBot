@@ -99,7 +99,7 @@ def get_post_views(channel_id, post_id):
 		return 0
 
 def main(argv):
-	resp = get_post_views(-1001868668014, 143)
+	resp = get_post_views(-1001868668014, 146)
 	print(resp)
 
 
