@@ -1619,6 +1619,7 @@ async def send_post_now(call: types.CallbackQuery, state: FSMContext):
 
 	channel = Channel.get(id=data['channel_id'])
 	
+	mes_id = await utils.send_post_to_channel(channel_id=channel.channel_id, user_id=call.from_user.id, data=data)
 
 	try:
 		print('WE HERE 1')

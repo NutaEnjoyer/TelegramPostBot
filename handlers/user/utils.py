@@ -20,6 +20,8 @@ from bot.start_semi_bot_container import bot as user_bot
 
 import handlers.other.ord_api as ord_api
 
+import os
+
 # bot = Bot(token=config.ADMIN_TOKEN, parse_mode='HTML')
 
 
@@ -491,7 +493,6 @@ async def send_post_to_channel(channel_id, user_id, data, info=None, config=None
 		config = config
 	else:
 		p = PostInfo.get(id=data['info'])
-		os.remove()
 		channel = Channel.get(id=data.get('channel_id'))
 		config = ChannelConfiguration.get(channel_id=channel.channel_id)
 		print('CONFIG SEND POST TO CHANNEL: ', config.id)

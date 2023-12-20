@@ -85,7 +85,7 @@ def setting_keyboard():
 
 	keyboard.add(b1)
 	keyboard.add(b2)
-	keyboard.add(b3)
+	# keyboard.add(b3)
 
 	return keyboard
 
