@@ -559,7 +559,7 @@ async def content_plan_set_post_time(call: types.CallbackQuery, state: FSMContex
 	if time_post:
 		await user_state.ContentPlan.SetPostTime.set()
 		await state.update_data(data)
-		await state.update_data(post_date=0)
+		await state.update_data(post_date=0, process_message_id=call.message.message_id)
 		data = await state.get_data()
 		await call.message.edit_text(TEXTS.postpone_rule, reply_markup=inline.postpone(data))
 
@@ -1571,6 +1571,17 @@ async def pre_fire_send_text_post_handler(message: types.Message, state: FSMCont
 
 async def pre_fire_send_photo_post_handler(message: types.Message, state: FSMContext):
 	# point
+	# print(message)
+	# await bot.send_poll(
+	# 	chat_id=message.chat.id,
+	# 	question=message.poll.question,
+	# 	options=[i.text for i in message.poll.options],
+	# 	is_anonymous=message.poll.is_anonymous,
+	# 	is_closed=message.poll.is_closed,
+	# 	type=message.poll.type,
+	# 	allows_multiple_answers=message.poll.allows_multiple_answers
+	# )
+	# return
 	await user_state.AddPost.SendPost.set()
 	await formations_send_post(message, state)
 	
@@ -1619,7 +1630,7 @@ async def send_post_now(call: types.CallbackQuery, state: FSMContext):
 
 	channel = Channel.get(id=data['channel_id'])
 	
-	mes_id = await utils.send_post_to_channel(channel_id=channel.channel_id, user_id=call.from_user.id, data=data)
+	# mes_id = await utils.send_post_to_channel(channel_id=channel.channel_id, user_id=call.from_user.id, data=data)
 
 	try:
 		print('WE HERE 1')
@@ -1775,10 +1786,14 @@ async def postpone_post(call: types.CallbackQuery, state: FSMContext):
 async def postpone_back(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
 	channel = Channel.get(id=data['channel_id'])
-	await state.update_data(active=False, date=None, text='', price=None, media=[], reply_markup=None)
+	# await state.update_data(active=False, date=None, text='', price=None, media=[], reply_markup=None)
 	await call.message.delete()
-	choose_mes = await call.message.answer(TEXTS.send_post.format(title=channel.title))
-	await state.update_data(start_choose_mes=choose_mes)
+	try:
+		await bot.delete_message(call.from_user.id, data['middle_mes'].message_id)
+	except Exception as e:
+		print(e)
+	# choose_mes = await call.message.answer(TEXTS.send_post.format(title=channel.title))
+	# await state.update_data(start_choose_mes=choose_mes)
 
 
 async def postpone_time(call: types.CallbackQuery, state: FSMContext):
@@ -1968,6 +1983,7 @@ async def content_plan_copy_post_send_time(message: types.Message, state: FSMCon
 
 async def content_plan_parse_postpone_time(message: types.Message, state: FSMContext):
 	data = await state.get_data()
+	print(f'{data=}')
 	parsed = utils.parse_time(message.text, data['post_date'])
 	if parsed is None:
 		await message.answer(TEXTS.error_parse_time)
@@ -1983,7 +1999,12 @@ async def content_plan_parse_postpone_time(message: types.Message, state: FSMCon
 	post_time.time = seconds + time.time()
 	post_time.save()
 
-	await message.answer('Готово')
+	# await message.answer('Готово')
+	try:
+		await bot.delete_message(message.from_user.id, data.pop('process_message_id'))
+		await bot.delete_message(message.from_user.id, message.message_id)
+	except Exception:
+		pass
 
 	data = await state.get_data()
 	await state.finish()

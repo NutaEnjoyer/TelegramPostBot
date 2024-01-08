@@ -19,7 +19,6 @@ from bot.start_semi_bot_container import bot
 scheduler = AsyncIOScheduler()
 
 
-    
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 
