@@ -137,9 +137,7 @@ async def all_other(message: types.Message, state: FSMContext):
 		else:
 			message_ids = [int(i) for i in sended_post.message_id.split('$')]
 			if message.forward_from_message_id in message_ids:
-				print('IN')
 				post_info = PostInfo.get(post_id=sended_post.post_id)
-				print(post_info.with_comment)
 				if not post_info.with_comment:
 					await bot.delete_message(message.chat.id, message.message_id)
 
