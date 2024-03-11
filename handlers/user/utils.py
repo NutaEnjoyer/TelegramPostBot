@@ -111,6 +111,15 @@ async def is_no_paid(post_time):
 	advert_post = AdvertPost.get_or_none(post_time_id=post_time.id)
 	result = False
 
+	p = PostInfo.get_or_none(post_id=post_time.post_id)
+
+	if p:
+		manager = ManagerPlacement.get_or_none(info=p.id)
+		if manager:
+			if not manager.is_admin_paid:
+				return True
+
+
 	if not advert_post:
 		return False
 

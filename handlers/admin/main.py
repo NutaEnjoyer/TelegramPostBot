@@ -1840,6 +1840,8 @@ async def moder_post_yes(call: types.CallbackQuery, state: FSMContext):
 async def moder_post_no(call: types.CallbackQuery, state: FSMContext):
 	await call.message.delete()
 
+
+
 def register_admin_handlers(dp):
 	dp.register_pre_checkout_query_handler(proccess_pre_checkout_query)
 	dp.register_message_handler(successful_payment, content_types=types.message.ContentType.SUCCESSFUL_PAYMENT)

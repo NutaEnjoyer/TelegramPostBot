@@ -143,6 +143,14 @@ class ModerationManage(StatesGroup):
 	OpenRedactor = State()
 	ChooseConfirmer = State()
 
+class ManagerManage(StatesGroup):
+	Main = State()
+	ChooseCat = State()
+	SendRedactor = State()
+	SendRequisites = State()
+	OpenRedactor = State()
+	ChooseConfirmer = State()
+
 class WlNewTime(StatesGroup):
 	SendTime = State()
 	

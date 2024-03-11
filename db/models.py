@@ -31,6 +31,14 @@ class Moderator(BaseModel):
 	title = CharField()
 	name = CharField()
 
+class Manager(BaseModel):
+	admin_id = IntegerField()
+	channel_id = IntegerField()
+	title = CharField()
+	name = CharField()
+	rate = IntegerField(default=10)
+	requisites = CharField(null=True)
+
 
 class Schedule(BaseModel):
 	channel_id = IntegerField()
@@ -81,6 +89,23 @@ class SendedPost(BaseModel):
 	channel_id = IntegerField()
 	message_id = IntegerField()
 	post_id = IntegerField()
+	human_time = CharField()
+	time = IntegerField()
+
+
+class ManagerPlacement(BaseModel):
+	manager_id = IntegerField()
+	client_id = IntegerField(null=True)
+	client_name = CharField(null=True)
+	channel_id = IntegerField()
+	dict_object_id = IntegerField()
+	price = IntegerField(default=0)
+	info = IntegerField()
+	is_paid = BooleanField(default=False)
+	is_admin_paid = BooleanField(default=False)
+	fee_is_paid = BooleanField(default=True)
+	is_moderated = BooleanField(default=False)
+	active = BooleanField(default=True)
 	human_time = CharField()
 	time = IntegerField()
 
@@ -246,8 +271,9 @@ class DeferredVerification(BaseModel):
 	active = BooleanField(default=True)
 
 def main(argv):
-	database.drop_tables([DeferredVerification])
-	database.create_tables([DeferredVerification])
+	# database.drop_tables([Manager])
+	database.create_tables([Manager, ManagerPlacement])
+	# database.create_tables([ManagerPlacement])
 	# database.create_tables([DictObject])
 
 	pass

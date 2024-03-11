@@ -1,5 +1,8 @@
 from aiogram import types
 
+from db.models import Manager
+
+
 def admin():
 	keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 	b1 = types.KeyboardButton('Рассылка')
@@ -29,17 +32,23 @@ def set_schedule():
 	keyboard.add(b1)
 	return keyboard
 
-def main_keyboard():
+def main_keyboard(event):
+
 	keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 	b1 = types.KeyboardButton('Публикации')
 	b2 = types.KeyboardButton('Настройки')
 	b3 = types.KeyboardButton('Реклама')
 	b4 = types.KeyboardButton('Кабинет')
-	b5 = types.KeyboardButton('Настройка расписания')
+
+	b5 = types.KeyboardButton('Уголок менеджера')
 
 	keyboard.add(b1, b2)
 	keyboard.add(b3, b4)
-	# keyboard.add(b5)
+
+	manager = Manager.get_or_none(admin_id=event.from_user.id)
+
+	if manager:
+		keyboard.add(b5)
 
 	return keyboard
 

@@ -30,15 +30,17 @@ async def start_handler(message: types.Message, state: FSMContext):
 	await state.finish()
 	user = db.add_user(user_id=message.from_user.id)
 	moder = Moderator.get_or_none(admin_id=message.from_user.id)
+	manager = Manager.get_or_none(admin_id=message.from_user.id)
+
 	if user:
-		if moder:
-			await message.answer("Вы являетесь редактором канала", reply_markup=reply.main_keyboard())
-			await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
+		if moder or manager:
+			await message.answer("Вы являетесь редактором или менеджером канала", reply_markup=reply.main_keyboard(message))
+			await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(message))
 		else:	
 			await user_state.SendSmallAnswer.sendAnswerStartOfferAccess.set()
 			await message.answer(TEXTS.start, reply_markup=start_offer_access())
 	else:
-		await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
+		await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(message))
 
 
 async def support_handler(message: types.Message, state: FSMContext):
@@ -133,7 +135,7 @@ async def add_channel_price(message: types.Message, state: FSMContext):
 			await message.answer(TEXTS.ord_rules_message)
 			await message.answer(TEXTS.ord_choose_type, reply_markup=inline.choose_type_ord())
 		else:
-			await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
+			await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(message))
 			await utils.add_platform(account_id=account.ord_id, name=findchannel.title, url=findchannel.link, user_id=message.from_user.id)
 
 
@@ -172,7 +174,7 @@ async def send_name_ord(message: types.Message, state: FSMContext):
 	await state.finish()
 	await bot.delete_message(message.from_user.id, message.message_id)
 	await bot.delete_message(message.from_user.id, data.pop('mes_to_del'))
-	await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
+	await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(message))
 
 	data['name'] = name
 	await utils.create_organization(data, user_id=message.from_user.id)
@@ -196,7 +198,7 @@ async def next_setting_schedule(call: types.CallbackQuery, state: FSMContext):
 		await call.message.edit_text(TEXTS.channel_setting, reply_markup=inline.channel_setting())
 	else:
 		await call.message.delete()
-		await call.message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
+		await call.message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(call))
 		await state.finish()
 
 
@@ -1039,7 +1041,7 @@ async def rewrite_get_post_back(message: types.Message, state: FSMContext):
 		await bot.delete_message(message.from_user.id, message.message_id)
 	except Exception as e:
 		pass
-	await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
+	await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(message))
 
 
 async def rewrite_get_post_just_back(message: types.Message, state: FSMContext):
@@ -1241,7 +1243,7 @@ async def self_person_back(call: types.CallbackQuery, state: FSMContext):
 
 async def cancel_send_post_handler(call: types.CallbackQuery, state: FSMContext):
 	await state.finish()
-	await call.message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
+	await call.message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(call))
 	await call.message.delete()
 
 async def swap_keyboard(call: types.CallbackQuery, state: FSMContext):
@@ -1376,7 +1378,7 @@ async def swap_media_handler(message: types.Message, state: FSMContext):
 	
 		for mes in data.pop('mess'):
 			await mes.delete()
-		data.pop('mess').delete()
+		# data.pop('mess').delete()
 
 async def next_message_exists(message):
 	flag = True
@@ -1515,10 +1517,7 @@ async def formations_send_post(message: types.Message, state: FSMContext):
 		data = await state.get_data()
 		if data.get('album_message'):
 			return
-		mess = await send_message_dicts(dicts, message.chat.id)	
-		# menu_mes = await message.answer('⚙️  Настройка сообщения ✏️', reply_markup=inline.edit_message())
-		# await user_state.EditModerationPost.Main.set()
-		# await state.update_data(data, message=mes, menu_message=menu_mes)
+		mess = await send_message_dicts(dicts, message.chat.id)
 		p = PostInfo.create()
 		mes = await message.answer(TEXTS.album_edit, reply_markup=inline.add_markup_send_post(None, True, context=p.id), disable_web_page_preview=True)
 		post_message_id = data['start_message_id'] + len(data['dicts'])
@@ -1570,18 +1569,6 @@ async def pre_fire_send_text_post_handler(message: types.Message, state: FSMCont
 
 
 async def pre_fire_send_photo_post_handler(message: types.Message, state: FSMContext):
-	# point
-	# print(message)
-	# await bot.send_poll(
-	# 	chat_id=message.chat.id,
-	# 	question=message.poll.question,
-	# 	options=[i.text for i in message.poll.options],
-	# 	is_anonymous=message.poll.is_anonymous,
-	# 	is_closed=message.poll.is_closed,
-	# 	type=message.poll.type,
-	# 	allows_multiple_answers=message.poll.allows_multiple_answers
-	# )
-	# return
 	await user_state.AddPost.SendPost.set()
 	await formations_send_post(message, state)
 	
@@ -1613,12 +1600,12 @@ async def send_post_now(call: types.CallbackQuery, state: FSMContext):
 			channel = Channel.get(id=i)
 			await utils.send_post_to_channel(channel_id=channel.channel_id, user_id=call.from_user.id, data=data)
 			await call.message.answer(TEXTS.message_posted_success.format(title=channel.title),
-										  reply_markup=reply.main_keyboard())
+										  reply_markup=reply.main_keyboard(call))
 
 			try:
 				await utils.send_post_to_channel(channel_id=channel.channel_id, user_id=call.from_user.id, data=data)
 				await call.message.answer(TEXTS.message_posted_success.format(title=channel.title),
-										  reply_markup=reply.main_keyboard())
+										  reply_markup=reply.main_keyboard(call))
 
 			except Exception as e:
 				admin_id = channel.admin_id
@@ -1635,7 +1622,7 @@ async def send_post_now(call: types.CallbackQuery, state: FSMContext):
 	try:
 		print('WE HERE 1')
 		mes_id = await utils.send_post_to_channel(channel_id=channel.channel_id, user_id=call.from_user.id, data=data)
-		await call.message.answer(TEXTS.message_posted_success.format(title=channel.title), reply_markup=reply.main_keyboard())
+		await call.message.answer(TEXTS.message_posted_success.format(title=channel.title), reply_markup=reply.main_keyboard(call))
 		if data.get('share_context'):
 			for i in data['share_context']:
 				chnl = Channel.get(id=i)
@@ -1900,7 +1887,7 @@ async def parse_postpone_time(message: types.Message, state: FSMContext):
 
 	await message.answer(TEXTS.success_post_time.format(title=channel.title, date=human_date))
 
-	await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
+	await message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(message))
 
 	await message.delete()
 	data = await state.get_data()
@@ -1914,7 +1901,6 @@ async def parse_postpone_time(message: types.Message, state: FSMContext):
 
 	await state.finish()
 
-	await state.finish()
 
 async def content_plan_copy_post_send_time(message: types.Message, state: FSMContext):
 	data = await state.get_data()
@@ -2155,7 +2141,7 @@ async def add_channel_end_cancel(message: types.Message, state: FSMContext):
 	data = await state.get_data()
 
 	await user_state.Settings.Main.set()
-	await message.answer('Отменено', reply_markup=reply.main_keyboard())
+	await message.answer('Отменено', reply_markup=reply.main_keyboard(message))
 	await message.answer(TEXTS.settings_menu, reply_markup=inline.setting_keyboard())
 
 	try:
@@ -2240,6 +2226,13 @@ async def setting_channel_redactor_manage(call: types.CallbackQuery, state: FSMC
 	await user_state.ModerationManage.Main.set()
 	await state.update_data(data)
 
+async def setting_channel_manager_manage(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	managers = Manager.select().where(Manager.channel_id==data['channel_id'])
+	await call.message.edit_text(f'Менеджеры канала:', reply_markup=inline.manager_manage(managers))
+	await user_state.ManagerManage.Main.set()
+	await state.update_data(data)
+
 async def redactor_manage_update_moder(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
 	channel = Channel.get(channel_id=data['channel_id'])
@@ -2267,9 +2260,20 @@ async def redactor_manage_pre_create_moder(call: types.CallbackQuery, state: FSM
 	await state.update_data(data, mes_id=mes.message_id)
 
 
-async def redactor_manage_create_moder(message: types.CallbackQuery, state: FSMContext):
+async def redactor_manage_pre_create_manager(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	await user_state.ManagerManage.SendRedactor.set()
+	mes = await call.message.edit_text(f'Перешлите сообщение от пользователя, которого хотите добавить в менеджеры\n\n \
+								<i>Учтите, что у него должен быть открытый профиль и он должен был запустить этого бота!</i>',
+							    reply_markup=inline.only_back())
+	await state.update_data(data, mes_id=mes.message_id)
+
+
+
+async def redactor_manage_create_moder(message: types.Message, state: FSMContext):
 	data = await state.get_data()
 	channel = Channel.get(channel_id=data['channel_id'])
+	print(message)
 	admin_id = message.forward_from.id
 	channel_id = data['channel_id']
 	name = message.forward_from.first_name
@@ -2284,6 +2288,43 @@ async def redactor_manage_create_moder(message: types.CallbackQuery, state: FSMC
 	await user_state.ModerationManage.Main.set()
 	await state.update_data(data)
 
+
+async def redactor_manage_create_manager(message: types.Message, state: FSMContext):
+	data = await state.get_data()
+	channel = Channel.get(channel_id=data['channel_id'])
+	print(message)
+	admin_id = message.forward_from.id
+	channel_id = data['channel_id']
+	name = message.forward_from.first_name
+	title =  channel.title
+	m = Manager.get_or_none(admin_id=admin_id)
+	if not m:
+		m = Manager.create(admin_id=admin_id, channel_id=channel_id, name=name, title=title)
+		m.save()
+	await bot.delete_message(message.from_user.id, message.message_id)
+
+	ms = await message.answer("Теперь пришлите реквезиты для менеджера, на которые будет поступать оплата")
+
+	await state.set_state(user_state.ManagerManage.SendRequisites)
+	await state.update_data(m=m.id, delete_it=ms.message_id)
+
+async def redactor_manage_create_manager_requisites(message: types.Message, state: FSMContext):
+	data = await state.get_data()
+
+	manager = Manager.get(id=data['m'])
+
+	manager.requisites = message.text
+	manager.save()
+
+	redactors = Manager.select().where(Manager.channel_id == data['channel_id'])
+	await bot.edit_message_text(f'Менеджеры канала:', message.from_user.id, data.pop('mes_id'),
+								reply_markup=inline.manager_manage(redactors))
+	await user_state.ManagerManage.Main.set()
+	await bot.delete_message(message.chat.id, message.message_id)
+	await bot.delete_message(message.chat.id, data.pop('delete_it'))
+
+	await state.update_data(data)
+
 async def redactor_manage_create_moder_back(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
 	redactors = Moderator.select().where(Moderator.channel_id==data['channel_id'])
@@ -2291,6 +2332,12 @@ async def redactor_manage_create_moder_back(call: types.CallbackQuery, state: FS
 	await user_state.ModerationManage.Main.set()
 	await state.update_data(data)
 
+async def redactor_manage_create_manager_back(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	redactors = Manager.select().where(Manager.channel_id==data['channel_id'])
+	await call.message.edit_text(f'Менеджеры канала:', reply_markup=inline.manager_manage(redactors))
+	await user_state.ManagerManage.Main.set()
+	await state.update_data(data)
 
 async def redactor_manage_open_moder(call: types.CallbackQuery, state: FSMContext):
 	m = Moderator.get(id=int(call.data.split('$')[1]))
@@ -2300,6 +2347,16 @@ async def redactor_manage_open_moder(call: types.CallbackQuery, state: FSMContex
 	await state.update_data(data)
 
 	await call.message.edit_text(f'{m.name}', reply_markup=inline.moder(m.id))
+
+
+async def manager_manage_open_moder(call: types.CallbackQuery, state: FSMContext):
+	m = Manager.get(id=int(call.data.split('$')[1]))
+	chat = await bot.get_chat(m.admin_id)
+	data = await state.get_data()
+	await user_state.ManagerManage.OpenRedactor.set()
+	await state.update_data(data)
+
+	await call.message.edit_text(f'{m.name}', reply_markup=inline.manag(m.id))
 
 	
 async def redactor_manage_delete_moder(call: types.CallbackQuery, state: FSMContext):
@@ -2311,6 +2368,19 @@ async def redactor_manage_delete_moder(call: types.CallbackQuery, state: FSMCont
 	await call.message.edit_text(f'Редакторы канала:', reply_markup=inline.redactor_manage(redactors))
 	await user_state.ModerationManage.Main.set()
 	await state.update_data(data)
+
+
+async def redactor_manage_delete_manag(call: types.CallbackQuery, state: FSMContext):
+	m = Manager.get_or_none(id=int(call.data.split('$')[1]))
+	if m:
+		m.delete_instance()
+	data = await state.get_data()
+	redactors = Manager.select().where(Manager.channel_id==data['channel_id'])
+	await call.message.edit_text(f'Менеджеры канала:', reply_markup=inline.manager_manage(redactors))
+	await user_state.ManagerManage.Main.set()
+	await state.update_data(data)
+
+
 
 async def setting_channel_redactor_manage_back(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
@@ -2412,7 +2482,7 @@ async def setting_channel_auto_write_send(message: types.Message, state: FSMCont
 
 	await user_state.Settings.Public.set()
 	await state.update_data(data)
-	mes = await message.answer('Готово', reply_markup=reply.main_keyboard())
+	mes = await message.answer('Готово', reply_markup=reply.main_keyboard(message))
 	await message.answer(TEXTS.public, reply_markup=inline.public(new_config))
 
 
@@ -2482,7 +2552,7 @@ async def setting_channel_reactions_end(message: types.Message, state: FSMContex
 
 	await user_state.Settings.Public.set()
 	await state.update_data(data)
-	mes = await message.answer('Готово', reply_markup=reply.main_keyboard())
+	mes = await message.answer('Готово', reply_markup=reply.main_keyboard(message))
 	await message.answer(TEXTS.public, reply_markup=inline.public(new_config))
 
 
@@ -2571,8 +2641,8 @@ async def change_links_send_text_post(message: types.Message, state: FSMContext)
 
 async def change_links_send_post_back(call: types.CallbackQuery, state: FSMContext):
 	await state.finish()
-	await call.message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard())
-	await  call.message.delete()
+	await call.message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(call))
+	await call.message.delete()
 
 async def change_links_send_post(message: types.Message, state: FSMContext):
 	data = await state.get_data()
@@ -2667,7 +2737,7 @@ async def change_links_send_link(message: types.Message, state: FSMContext):
 
 			await message.answer_media_group(media)
 
-	await message.answer('Готово', reply_markup=reply.main_keyboard())
+	await message.answer('Готово', reply_markup=reply.main_keyboard(message))
 	await state.finish()
 
 async def setting_shedule_back(call: types.CallbackQuery, state: FSMContext):
@@ -3629,10 +3699,9 @@ async def formation_post_send_link(message: types.Message, state: FSMContext):
 			c.delete_instance()
 
 		await state.finish()
-		await message.answer('Пост(ы) получен(ы) и отправлен(ы) на согласование', reply_markup=reply.main_keyboard())
+		await message.answer('Пост(ы) получен(ы) и отправлен(ы) на согласование', reply_markup=reply.main_keyboard(message))
 
-		
-		return	
+		return
 
 	await state.update_data(channel_number=channel_number, links=data['links'] + [link])
 	await message.answer(TEXTS.get_link_form(FindChannel.get(id=channels[channel_number].find_channel_id)))
@@ -4570,7 +4639,10 @@ async def close_check_user_handler(call: types.CallbackQuery, state: FSMContext)
 	except Exception as e:
 		pass
 
+
 def register_user_handlers(dp: Dispatcher):
+	from handlers.manager.main import register_manager_handlers
+
 	dp.register_pre_checkout_query_handler(proccess_pre_checkout_query)
 	dp.register_message_handler(successful_payment, content_types=types.message.ContentType.SUCCESSFUL_PAYMENT)
 	
@@ -4586,6 +4658,10 @@ def register_user_handlers(dp: Dispatcher):
 								text='Отмена')
 	dp.register_message_handler(add_channel_end, state=[user_state.AddNewChannel.sendMessageFromChannel, user_state.Settings.sendMessageFromChannel],
 								content_types=['text', 'photo', 'video', 'voice'])
+
+	register_manager_handlers(dp)
+
+
 	dp.register_message_handler(add_channel_begin, text='Добавить канал')
 	dp.register_message_handler(start_handler, text=['Меню', '🏠 В меню'], state='*')
 	dp.register_message_handler(publications_handler, text='Публикации', state='*')
@@ -4733,6 +4809,7 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_callback_query_handler(moderation_manage_confirmer, state=user_state.ModerationManage.Main, text='confirmer')
 	dp.register_callback_query_handler(redactor_manage_update_moder, state=user_state.ModerationManage.Main, text='update_moder')
 	dp.register_callback_query_handler(redactor_manage_pre_create_moder, state=user_state.ModerationManage.Main, text='add_moder')
+	dp.register_callback_query_handler(redactor_manage_pre_create_manager, state=user_state.ManagerManage.Main, text='add_manager')
 	# dp.register_callback_query_handler(setting_channel_back, state=user_state.Settings.SettingChannel, text='back')
 	dp.register_callback_query_handler(setting_back, state=user_state.Settings, text='back')
 	dp.register_callback_query_handler(choose_cat_to_find, state=user_state.SettingSchedule.StartSettingSchedule, text_startswith='choose_cat_to_find$')
@@ -4749,8 +4826,7 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_callback_query_handler(delete_my_post_handler, state='*', text_startswith='delete_my_post')
 	dp.register_callback_query_handler(back_to_my_post_handler, state='*', text_startswith='back_to_my_posts')
 
-	print()
-	# my points  
+	# my points
 	dp.register_message_handler(basket_handler, state='*', text='🛒 Корзина')
 	dp.register_callback_query_handler(go_to_basket, state='*', text='go_to_basket')
 	dp.register_callback_query_handler(add_basket_channel, state='*', text_startswith='add_basket_channel')
@@ -4844,12 +4920,16 @@ def register_user_handlers(dp: Dispatcher):
 
 	dp.register_callback_query_handler(setting_channel_application_manage, state=user_state.Settings.SettingChannel, text='application_manage')
 	dp.register_callback_query_handler(setting_channel_moderation_manage, state=user_state.Settings.SettingChannel, text='moderation_manage')
+	dp.register_callback_query_handler(setting_channel_manager_manage, state=user_state.Settings.SettingChannel, text='manager_manage')
 	dp.register_callback_query_handler(setting_channel_moderation_manage_back, state=user_state.ModerationManage.Main, text='back')
 	dp.register_callback_query_handler(setting_channel_redactor_manage, state=user_state.Settings.SettingChannel, text='redactor_manage')
-	dp.register_callback_query_handler(setting_channel_redactor_manage_back, state=user_state.ModerationManage.Main, text='back')
+	dp.register_callback_query_handler(setting_channel_redactor_manage_back, state=[user_state.ModerationManage.Main, user_state.ManagerManage.Main], text='back')
 	dp.register_callback_query_handler(redactor_manage_create_moder_back, state=user_state.ModerationManage.SendRedactor, text='back')
+	dp.register_callback_query_handler(redactor_manage_create_manager_back, state=user_state.ManagerManage.SendRedactor, text='back')
 	dp.register_callback_query_handler(redactor_manage_create_moder_back, state=user_state.ModerationManage.OpenRedactor, text='back')
 	dp.register_message_handler(redactor_manage_create_moder, state=user_state.ModerationManage.SendRedactor, content_types=["text", "photo", "video"])
+	dp.register_message_handler(redactor_manage_create_manager, state=user_state.ManagerManage.SendRedactor, content_types=["text", "photo", "video"])
+	dp.register_message_handler(redactor_manage_create_manager_requisites, state=user_state.ManagerManage.SendRequisites, content_types=["text"])
 	dp.register_callback_query_handler(setting_channel_support, state=user_state.Settings.SettingChannel, text='support')
 	dp.register_callback_query_handler(setting_channel_auto_write, state=user_state.Settings, text='auto_write')
 	dp.register_message_handler(setting_channel_auto_write_send, state=user_state.Settings.SendAutoWrite)
@@ -4866,7 +4946,9 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_callback_query_handler(setting_channel_post_without_sound, state=user_state.Settings, text='post_without_sound')
 	dp.register_callback_query_handler(change_links, state='*', text='change_links')
 	dp.register_callback_query_handler(redactor_manage_open_moder, state=user_state.ModerationManage.Main, text_startswith='open_moder')
+	dp.register_callback_query_handler(manager_manage_open_moder, state=user_state.ManagerManage.Main, text_startswith='open_manager')
 	dp.register_callback_query_handler(redactor_manage_delete_moder, state=user_state.ModerationManage.OpenRedactor, text_startswith='delete_moder')
+	dp.register_callback_query_handler(redactor_manage_delete_manag, state=user_state.ManagerManage.OpenRedactor, text_startswith='delete_manag')
 	dp.register_callback_query_handler(moderation_manage_categories_choose, state=user_state.ModerationManage.ChooseCat, text_startswith='choose_cat_to_confirm')
 	dp.register_callback_query_handler(moderation_manage_choose_confirmer, state=user_state.ModerationManage.ChooseConfirmer, text_startswith='choose_moder_to_confirm')
 	dp.register_callback_query_handler(moderation_manage_categories_back, state=user_state.ModerationManage.ChooseCat, text_startswith='back')

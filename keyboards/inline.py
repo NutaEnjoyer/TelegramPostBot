@@ -21,6 +21,17 @@ def moder(id):
 	
 	return keyboard
 
+
+def manag(id):
+	keyboard = types.InlineKeyboardMarkup()
+	b1 = types.InlineKeyboardButton(text='Удалить', callback_data=f'delete_manag${id}')
+	b2 = types.InlineKeyboardButton(text='Назад', callback_data='back')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+
+	return keyboard
+
 def pre_delete_post():
 	keyboard = types.InlineKeyboardMarkup()
 	b5 = types.InlineKeyboardButton(text=f'Отмена', callback_data=f'delete_message')
@@ -1669,6 +1680,22 @@ def redactor_manage(redactors):
 	keyboard.add(b1)
 	keyboard.add(b2)
 	
+	return keyboard
+
+
+def manager_manage(managers):
+	keyboard = types.InlineKeyboardMarkup()
+
+	for manager in managers:
+		b = types.InlineKeyboardButton(text=f'{manager.name}', callback_data=f'open_manager${manager.id}')
+		keyboard.add(b)
+
+	b1 = types.InlineKeyboardButton(text='➕ Добавить ➕', callback_data='add_manager')
+	b2 = types.InlineKeyboardButton(text='Назад', callback_data='back')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
+
 	return keyboard
 
 def send_advertisment_post():
