@@ -1180,6 +1180,7 @@ async def create_post_handler(message: types.Message, state: FSMContext):
 		channel = Channel.get(channel_id=i.channel_id)
 		moder_channels.append(channel)
 	channels = list(channels) + moder_channels
+	print(channels, list(channels), moder_channels)
 	await user_state.CreatePost.ChooseChannel.set()
 	await message.answer(TEXTS.choose_channel, reply_markup=inline.choose_channel(channels))
 

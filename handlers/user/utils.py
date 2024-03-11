@@ -1205,9 +1205,10 @@ async def send_old_post_to_user(user_id, data):
 
 
 async def edit_post_text(post_id, text):
-	post = Post.get(id=post_id)
-	post.text = text
-	post.save()
+	post = DictObject.get(id=post_id)
+	dicts = Dict.select().where(Dict.object_id==post.id)
+	dicts[0].text=text
+	dicts[0].save()
 
 	sended_post = SendedPost.get_or_none(post_id=post_id)
 
