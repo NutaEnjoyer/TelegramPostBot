@@ -280,6 +280,8 @@ change_links_start = '''Пришлите свой креатив'''
 
 send_link = '''Пришлите ссылку в формате https://t.me/_____'''
 
+send_delete_time = "Выберите время удаления"
+
 def ads_link(channel_id):
 	link = ChannelCode.get_or_none(channel_id=channel_id)
 	if link:

@@ -78,6 +78,7 @@ class AddPost(StatesGroup):
 	SwapKeyboard = State()
 	SwapMedia = State()
 	SendPrice = State()
+	SendDeleteTime = State()
 
 class RewritePost(StatesGroup):
 	Main = State()

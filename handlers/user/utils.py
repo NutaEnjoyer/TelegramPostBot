@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from datetime import datetime
 from pprint import pprint
 
@@ -470,11 +471,22 @@ async def send_message_dicts_file_path(dicts, chat_id, info=None, config=None):
 	
 
 
-def create_dict_object(data, user_id):
+def create_dict_object(data, user_id, start_time=None):
 	dicts = data['dicts']
 	post_info = PostInfo.get(id=data['info'])
 	price = data.get('price') if data.get('price') else post_info.price
-	dictObject = DictObject.create(owner_id=user_id, price=price)
+
+	if post_info.delete_time:
+		delete_time = ((post_info.delete_time * 60 * 60 + time.time()) if start_time is None else (post_info.delete_time * 60 * 60 + start_time))
+		dt_utc = datetime.utcfromtimestamp(delete_time)
+		dt_utc3 = dt_utc.replace(tzinfo=pytz.UTC).astimezone(pytz.timezone("Europe/Moscow"))
+		delete_human_time = dt_utc3.strftime("%H:%M, %d %B %Y")
+		delete_time = ((post_info.delete_time * 60 * 60 + time.time()) if start_time is None else (post_info.delete_time * 60 * 60 + start_time))
+
+	else:
+		delete_time = None
+		delete_human_time = None
+	dictObject = DictObject.create(owner_id=user_id, price=price, delete_time=delete_time, delete_human=delete_human_time)
 	dictObject.save()
 	for dict in dicts:
 		object = Dict.create(
@@ -521,7 +533,7 @@ async def send_post_to_channel(channel_id, user_id, data, info=None, config=None
 	print(f'human_time: {human_time}\ntoday_time: {today_start}')
 	time = time.time()
 
-	dict_object = create_dict_object(data, user_id)
+	dict_object = create_dict_object(data, user_id, time)
 	p.post_id = dict_object
 	p.save()
 	if not (type(to_return) is list):
@@ -562,7 +574,7 @@ async def send_post_to_user(user_id, data):
 
 
 async def create_post_time(data, time, human_date, user_id):
-	dict_object = create_dict_object(data, user_id)
+	dict_object = create_dict_object(data, user_id, time)
 	p = PostInfo.get(id=data['info'])
 	p.post_id = dict_object
 	p.save()

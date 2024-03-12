@@ -717,18 +717,20 @@ async def content_plan_back_to_edit_post(call: types.CallbackQuery, state: FSMCo
 	await call.message.edit_text(TEXTS.edit_post, reply_markup=inline.edit_post(data['post_id']))
 
 async def content_plan_set_price(call: types.CallbackQuery, state: FSMContext):
-	await call.message.edit_text(TEXTS.set_price_rule, reply_markup=inline.only_back())
+	mes = await call.message.edit_text(TEXTS.set_price_rule, reply_markup=inline.only_back())
 	data = await state.get_data()
 	await user_state.ContentPlan.SetPrice.set()
-	await state.update_data(data)
+	await state.update_data(data, delete_it=mes.message_id)
 
 
 async def content_plan_send_price(message: types.Message, state: FSMContext):
+	data = await state.get_data()
+
 	if not message.text.isdigit():
 		await message.answer('Ошибка!')
 		return
+	await bot.delete_message(message.chat.id, data.pop('delete_it'))
 	price = int(message.text)
-	data = await state.get_data()
 	post = DictObject.get(id=data['post_id'])
 	post.price = price
 	post.save()
@@ -788,7 +790,8 @@ async def content_plan_set_price_back(call: types.CallbackQuery, state: FSMConte
 
 
 async def content_plan_set_delete_time_start(call: types.CallbackQuery, state: FSMContext):
-	await call.message.edit_text('Time delete', reply_markup=inline.delete_time())
+	await state.set_state(user_state.ContentPlan.SetDeleteTime)
+	await call.message.edit_text('Установите время удаления поста', reply_markup=inline.delete_time())
 
 async def content_plan_set_delete_time(call: types.CallbackQuery, state: FSMContext):
 	import datetime 
@@ -800,7 +803,7 @@ async def content_plan_set_delete_time(call: types.CallbackQuery, state: FSMCont
 	seconds = hours * 60 * 60
 
 	dt_utc = datetime.datetime.utcfromtimestamp(seconds)
-	dt_utc3 = dt_utc.replace(tzinfo=pytz.UTC).astimezone(pytz.timezone('EET'))
+	dt_utc3 = dt_utc.replace(tzinfo=pytz.UTC).astimezone(pytz.timezone("Europe/Moscow"))
 	human_date = dt_utc3.strftime("%d.%m.%Y %H:%M")
 
 	post_time = PostTime.get_or_none(post_id=data['post_id'])
@@ -812,11 +815,10 @@ async def content_plan_set_delete_time(call: types.CallbackQuery, state: FSMCont
 	else:
 		post_time = SendedPost.get_or_none(post_id=post_id)
 		
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	post.delete_time = seconds + post_time.time
 	dt_utc = datetime.datetime.utcfromtimestamp(seconds + post_time.time)
-	dt_utc3 = dt_utc.replace(tzinfo=pytz.UTC).astimezone(pytz.timezone('EET'))
-	human_date = dt_utc3.strftime("%d.%m.%Y %H:%M")
+	dt_utc3 = dt_utc.replace(tzinfo=pytz.UTC).astimezone(pytz.timezone('Europe/Moscow'))
 	dt_object = datetime.datetime.fromtimestamp(seconds + post_time.time, tz=datetime.timezone.utc)
 
 	# Перевод времени в московскую временную зону
@@ -824,7 +826,7 @@ async def content_plan_set_delete_time(call: types.CallbackQuery, state: FSMCont
 	moscow_time = dt_object.astimezone(moscow_tz)
 
 	# Форматирование времени
-	formatted_time = moscow_time.strftime("%d-%m-%Y %H:%M")
+	formatted_time = moscow_time.strftime("%H:%M, %d %B %Y")
 	post.delete_human = formatted_time
 	post.save()
 
@@ -858,7 +860,7 @@ async def content_plan_set_delete_time(call: types.CallbackQuery, state: FSMCont
 async def content_plan_unset_delete_time(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
 		
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	post.delete_human = None
 	post.delete_time = None
 	post.save()
@@ -890,7 +892,12 @@ async def content_plan_unset_delete_time(call: types.CallbackQuery, state: FSMCo
 
 async def content_plan_set_delete_time_back(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
+
+	data = await state.get_data()
+	await state.finish()
+	await user_state.ContentPlan.Main.set()
+	await state.update_data(data)
 
 	post_id = data['post_id']
 	sended_post = SendedPost.get_or_none(post_id=post_id)
@@ -904,7 +911,7 @@ async def content_plan_set_delete_time_back(call: types.CallbackQuery, state: FS
 
 	else:
 		time_post = PostTime.get(post_id=post_id)
-		chat = await bot.getset_delete_time_chat(time_post.user_id)
+		chat = await bot.get_chat(time_post.user_id)
 		status = '⏳ Отложен'
 		post_type = 'рекламный 💰' if post.price else 'обычный'
 		author = f"<a href='https://t.me/{chat.username}'>{chat.first_name}</a>"
@@ -1246,6 +1253,42 @@ async def cancel_send_post_handler(call: types.CallbackQuery, state: FSMContext)
 	await state.finish()
 	await call.message.answer(TEXTS.old_start, reply_markup=reply.main_keyboard(call))
 	await call.message.delete()
+
+async def set_delete_time(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	if not data.get('channel_id'):
+		await bot.answer_callback_query(call.id, 'Выберите канал!')
+		return
+
+	await state.set_state(user_state.AddPost.SendDeleteTime)
+	await call.message.edit_text(TEXTS.send_delete_time, reply_markup=inline.delete_time())
+
+
+async def set_set_delete_time(call: types.CallbackQuery, state: FSMContext):
+	hours = int(call.data.split('$')[1])
+	await state.set_state(user_state.AddPost.SendPost)
+	data = await state.get_data()
+	p = PostInfo.get(id=data['info'])
+	p.delete_time = hours
+	p.save()
+	await call.message.edit_text(TEXTS.album_edit, reply_markup=inline.add_markup_send_post(context=p.id))
+
+async def unset_set_delete_time(call: types.CallbackQuery, state: FSMContext):
+	await state.set_state(user_state.AddPost.SendPost)
+	data = await state.get_data()
+	p = PostInfo.get(id=data['info'])
+	p.delete_time = None
+	p.save()
+	await call.message.edit_text(TEXTS.album_edit, reply_markup=inline.add_markup_send_post(context=p.id))
+
+
+
+async def back_set_delete_time(call: types.CallbackQuery, state: FSMContext):
+	await state.set_state(user_state.AddPost.SendPost)
+	data = await state.get_data()
+	p = PostInfo.get(id=data['info'])
+	await call.message.edit_text(TEXTS.album_edit, reply_markup=inline.add_markup_send_post(context=p.id))
+
 
 async def swap_keyboard(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
@@ -1609,6 +1652,7 @@ async def send_post_now(call: types.CallbackQuery, state: FSMContext):
 										  reply_markup=reply.main_keyboard(call))
 
 			except Exception as e:
+				print(1, e)
 				admin_id = channel.admin_id
 				if admin_id == call.from_user.id:
 					await call.message.answer(TEXTS.error_post_message_to_channel.format(title=channel.title))
@@ -1634,6 +1678,8 @@ async def send_post_now(call: types.CallbackQuery, state: FSMContext):
 					await call.message.answer(TEXTS.error_post_message_to_channel.format(title=chnl.title))
 
 	except Exception as e:
+		print(2, e)
+
 		admin_id = channel.admin_id
 		if admin_id == call.from_user.id:
 			await call.message.answer(TEXTS.error_post_message_to_channel.format(title=channel.title))
@@ -2016,7 +2062,7 @@ async def content_plan_delete_time(call: types.CallbackQuery, state: FSMContext)
 	hours = int(call.data.split('$')[1])
 	seconds = hours * 60 * 60
 	dt_utc = datetime.datetime.utcfromtimestamp(seconds)
-	dt_utc3 = dt_utc.replace(tzinfo=pytz.UTC).astimezone(pytz.timezone('EET'))
+	dt_utc3 = dt_utc.replace(tzinfo=pytz.UTC).astimezone(pytz.timezone('Europe/Moscow'))
 	human_date = dt_utc3.strftime("%d.%m.%Y")
 
 	post_time = PostTime.get_or_none(post_id=data['post_id'])
@@ -3612,8 +3658,6 @@ async def formation_post_send_link(message: types.Message, state: FSMContext):
 		return
 	channels = Basket.select().where(Basket.user_id == message.from_user.id)
 	data = await state.get_data()
-	print("---------------------DATA---------------------")
-	print(data)
 	data['links'].append(link)
 	channel_number = data['channel_number'] + 1
 	i = 0
@@ -3632,17 +3676,12 @@ async def formation_post_send_link(message: types.Message, state: FSMContext):
 			
 			for dict in data['dicts']:
 				if not is_empty:
-					print('IN')
-					print(dict)
 					if 'text' in dict:
-						print(1)
 						text = utils.swap_links_in_text(dict['text'], link)
 						text = str(text)
 						dict['text'] = text
 					if 'reply_markup' in dict:
-						print(2)
 						markup = inline.swap_links_in_markup(dict['reply_markup'], link)
-						print("New markup", markup)
 						dict['reply_markup'] = markup
 
 			dicts = data['dicts']
@@ -4716,7 +4755,7 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_callback_query_handler(content_plan_back, state=user_state.ContentPlan.Main, text='back')
 	dp.register_callback_query_handler(content_plan_set_post_time, state=user_state.ContentPlan.Main, text='set_post_time')
 	dp.register_callback_query_handler(content_plan_set_delete_time_start, state=user_state.ContentPlan.Main, text='set_delete_time')
-	dp.register_callback_query_handler(content_plan_set_delete_time, state=user_state.ContentPlan, text_startswith='set_delete_time')
+	dp.register_callback_query_handler(content_plan_set_delete_time, state=user_state.ContentPlan.SetDeleteTime, text_startswith='set_delete_time')
 	dp.register_callback_query_handler(content_plan_set_delete_time_back, state=user_state.ContentPlan.SetDeleteTime, text_startswith='back')
 	dp.register_callback_query_handler(content_plan_unset_delete_time, state=user_state.ContentPlan, text_startswith='unset_delete_time')
 	dp.register_callback_query_handler(content_plan_set_price, state=user_state.ContentPlan.Main, text='set_price')
@@ -4754,6 +4793,10 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_callback_query_handler(cancel_swap_media, state=user_state.AddPost.SendPrice, text='back')
 
 	dp.register_message_handler(swap_media_handler, state=user_state.AddPost.SwapMedia, content_types=types.ContentTypes.ANY)
+	dp.register_callback_query_handler(set_delete_time, state=user_state.AddPost.SendPost, text='set_delete_time')
+	dp.register_callback_query_handler(set_set_delete_time, state=user_state.AddPost.SendDeleteTime, text_startswith='set_delete_time')
+	dp.register_callback_query_handler(unset_set_delete_time, state=user_state.AddPost.SendDeleteTime, text_startswith='unset_delete_time')
+	dp.register_callback_query_handler(back_set_delete_time, state=user_state.AddPost.SendDeleteTime, text_startswith='back')
 	dp.register_callback_query_handler(swap_keyboard, state=user_state.AddPost.SendPost, text='swap_keyboard')
 	dp.register_callback_query_handler(send_post_copy, state=user_state.AddPost.SendPost, text='copy')
 	dp.register_callback_query_handler(send_post_share, state=user_state.AddPost.SendPost, text='share')

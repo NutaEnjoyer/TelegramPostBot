@@ -73,6 +73,7 @@ class PostInfo(BaseModel):
 	reply_message_id = IntegerField(null=True)
 	SharePost = TextField(null=True)
 	price = IntegerField(null=True)
+	delete_time = IntegerField(null=True)
 
 
 class PostTime(BaseModel):
@@ -271,8 +272,10 @@ class DeferredVerification(BaseModel):
 	active = BooleanField(default=True)
 
 def main(argv):
-	# database.drop_tables([Manager])
-	database.create_tables([Manager, ManagerPlacement])
+	# database.drop_tables([PostInfo])
+	# database.create_tables([PostInfo])
+	database.execute_sql('ALTER TABLE postinfo ADD COLUMN delete_time INTEGER DEFAULT NULL;')
+
 	# database.create_tables([ManagerPlacement])
 	# database.create_tables([DictObject])
 

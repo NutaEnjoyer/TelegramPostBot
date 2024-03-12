@@ -270,10 +270,11 @@ def add_markup_send_post(start_markup=None, is_album=False, context=None):
 
 	context = PostInfo.get_or_none(id=context) if context else None
 
-	print(context.__dict__)
+	delete_time = f"{context.delete_time} ч." if context.delete_time else 'Не задано'
 
 	price = f': {context.price}' if context.price else ''
 
+	b0 = types.InlineKeyboardButton(text=f"Время удаления: {delete_time}", callback_data=f'set_delete_time')
 	b1 = types.InlineKeyboardButton(text='Изменить текст', callback_data='edit_text')
 	b2 = types.InlineKeyboardButton(text='Изменить медиа', callback_data='edit_media')
 	b3 = types.InlineKeyboardButton(text='URL-кнопки', callback_data='swap_keyboard')
@@ -302,6 +303,7 @@ def add_markup_send_post(start_markup=None, is_album=False, context=None):
 	b11 = types.InlineKeyboardButton(text='Отмена', callback_data='back_post')
 	b12 = types.InlineKeyboardButton(text='Дальше', callback_data='next_post')
 
+	start_markup.add(b0)
 	start_markup.add(b1, b2)
 	start_markup.add(b3)
 	start_markup.add(b4)
@@ -1622,11 +1624,12 @@ def confirm_themes(confirm_themes, page=1):
 
 	return keyboard
 
-def delete_time():
+def delete_time(sending_state=False):
 	keyboard = types.InlineKeyboardMarkup()
 
 	b = types.InlineKeyboardButton(text='Отключить удаление', callback_data='unset_delete_time')
-	keyboard.add(b)
+	if not sending_state:
+		keyboard.add(b)
 
 	b1 = types.InlineKeyboardButton(text='1ч', callback_data='set_delete_time$1')
 	b2= types.InlineKeyboardButton(text='2ч', callback_data='set_delete_time$2')

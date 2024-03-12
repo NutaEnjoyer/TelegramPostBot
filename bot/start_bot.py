@@ -56,7 +56,11 @@ async def do_some():
                     post.delete_instance()
                     continue
                 channel = Channel.get(id=sended_message.channel_id)
-                await bot.delete_message(channel.channel_id, sended_message.message_id)
+                if type(sended_message.message_id) is str:
+                    for i in sended_message.message_id.split('$'):
+                        await bot.delete_message(channel.channel_id, int(i))
+                else:
+                    await bot.delete_message(channel.channel_id, sended_message.message_id)
                 sended_message.delete_instance()
                 post.delete_instance()
             except Exception as e:
