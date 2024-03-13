@@ -103,7 +103,6 @@ async def update_channels_info():
 
     for find_channel in find_channels:
         update_channel_info(find_channel)
-        time.sleep(2)
 
 def schedule_job():
     scheduler.add_job(do_some, 'interval', seconds=8)
