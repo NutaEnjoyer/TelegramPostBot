@@ -456,6 +456,7 @@ async def group_send_message_dict(dicts, chat_id, info, config, bot=bot):
 	return mes 
 			
 async def send_message_dicts(dicts, chat_id, info=None, config=None, bot=bot):
+	print(dicts)
 	if len(dicts) == 1:
 		return await simple_send_message_dict(dicts[0], chat_id, info, config, bot)
 	else:
@@ -473,6 +474,7 @@ async def send_message_dicts_file_path(dicts, chat_id, info=None, config=None):
 
 def create_dict_object(data, user_id, start_time=None):
 	dicts = data['dicts']
+	print(dicts)
 	post_info = PostInfo.get(id=data['info'])
 	price = data.get('price') if data.get('price') else post_info.price
 
@@ -489,6 +491,7 @@ def create_dict_object(data, user_id, start_time=None):
 	dictObject = DictObject.create(owner_id=user_id, price=price, delete_time=delete_time, delete_human=delete_human_time)
 	dictObject.save()
 	for dict in dicts:
+		print("created dict")
 		object = Dict.create(
 			object_id=dictObject.id,
 			type=dict.get('type'),

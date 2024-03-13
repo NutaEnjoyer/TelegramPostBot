@@ -1,3 +1,4 @@
+import datetime
 import time
 from pprint import pprint
 
@@ -73,8 +74,40 @@ async def do_some():
         await utils.dv_proccess(dv)
     
 
+def update_channel_info(find_channel: FindChannel):
+    from handlers.other.tg_stat import (
+        get_channel_views,
+        get_channel_err,
+        get_channel_subscriber,
+        get_channel_stat,
+        get_channel_info,
+        get_channel_avg_posts_reach
+    )
+
+
+    v = get_channel_avg_posts_reach(find_channel.channel_id)
+    e = get_channel_err(find_channel.channel_id)
+    s = get_channel_subscriber(find_channel.channel_id)
+
+    find_channel.subscribers = s
+    find_channel.views = v
+    find_channel.err = e
+
+    find_channel.save()
+
+
+async def update_channels_info():
+    print('START')
+
+    find_channels = FindChannel.select()
+
+    for find_channel in find_channels:
+        update_channel_info(find_channel)
+        time.sleep(2)
+
 def schedule_job():
     scheduler.add_job(do_some, 'interval', seconds=8)
+    scheduler.add_job(update_channels_info, 'interval', seconds=86400, next_run_time=datetime.datetime.now())
 
 async def __on_start_up(dp: Dispatcher) -> None:
     from filters import register_all_filters

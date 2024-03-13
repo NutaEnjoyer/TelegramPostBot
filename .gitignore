@@ -1,8 +1,9 @@
 venv_main
 idea
 
-.env
+bot_data/.env
+
 database.db
 
-__pycache__/
+*/__pycache__/
 

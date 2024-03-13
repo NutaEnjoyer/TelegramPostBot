@@ -582,13 +582,13 @@ async def content_plan_delete_post(call: types.CallbackQuery, state: FSMContext)
 			for i in sended_post.message_id.split('$'):
 				await bot.delete_message(channel.channel_id, int(i))
 		sended_post.delete_instance()
-		post = Post.get(id=data['post_id'])
+		post = DictObject.get(id=data['post_id'])
 		post.delete_instance()
 
 	else:
 		time_post = PostTime.get(post_id=data['post_id'])
 		time_post.delete_instance()
-		post = Post.get(id=data['post_id'])
+		post = DictObject.get(id=data['post_id'])
 		post.delete_instance()
 
 	data = await state.get_data()
@@ -596,6 +596,11 @@ async def content_plan_delete_post(call: types.CallbackQuery, state: FSMContext)
 
 	await call.message.edit_text('Общий контент план', reply_markup=inline.all_content_plan_keyboard(0, posts))
 
+
+
+async def change_page_to_find_adv(call: types.CallbackQuery, state: FSMContext):
+	page = int(call.data.split('$')[1])
+	await call.message.edit_reply_markup(reply_markup=inline.choose_cat_adv(page))
 
 async def content_plan_copy_post(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
@@ -610,7 +615,7 @@ async def content_plan_edit_post(call: types.CallbackQuery, state: FSMContext):
 
 async def content_plan_edit_media(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	if post.media is None or post.media == '':
 		await call.message.answer('Не доступно для данного сообщения')
 		return
@@ -681,7 +686,7 @@ async def edit_post_text(message: types.Message, state: FSMContext):
 
 async def content_plan_edit_markup(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	if not(post.media is None) and len(post.media.split('$')) > 1:
 		await call.message.answer('Не доступно для данного сообщения')
 		return
@@ -765,7 +770,7 @@ async def content_plan_send_price(message: types.Message, state: FSMContext):
 async def content_plan_set_price_back(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
 	post_id = data['post_id']
-	post = Post.get(id=post_id)
+	post = DictObject.get(id=post_id)
 	sended_post = SendedPost.get_or_none(post_id=post_id)
 	post_data = db.from_post_id_to_data(post_id)
 	await call.message.delete()
@@ -1030,7 +1035,7 @@ async def rewrite_get_post(message: types.Message, state: FSMContext):
 
 	mes = await message.answer(TEXTS.edit_post, reply_markup=inline.edit_post_main())
 
-	post = Post.get(id=sended_post.post_id)
+	post = DictObject.get(id=sended_post.post_id)
 
 	await state.update_data(post_id=post.id, messages_to_delete=[message.message_id, mes.message_id])
 
@@ -1086,7 +1091,7 @@ async def rewrite_post_edit_text_send(message: types.Message, state: FSMContext)
 
 async def rewrite_post_edit_media(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	if post.media is None or post.media == '':
 		await call.message.answer('Не доступно для данного сообщения')
 		return
@@ -1139,7 +1144,7 @@ async def rewrite_post_edit_media_send(message: types.Message, state: FSMContext
 
 async def rewrite_post_edit_markup(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	if not (post.media is None) and len(post.media.split('$')) > 1:
 		await call.message.answer('Не доступно для данного сообщения')
 		return
@@ -1737,7 +1742,7 @@ async def content_plan_copy_post_now(call: types.CallbackQuery, state: FSMContex
 	# point
 
 	# post_id = data['post_id']
-	# post = Post.get(id=post_id)
+	# post = DictObject.get(id=post_id)
 	# sended_post = SendedPost.get_or_none(post_id=post_id)
 	# post_data = db.from_post_id_to_data(post_id)
 	# mes = await utils.send_old_post_to_user(call.from_user.id, post_data)
@@ -1785,7 +1790,7 @@ async def content_plan_copy_post_back(call: types.CallbackQuery, state: FSMConte
 	await user_state.ContentPlan.Main.set()
 	await state.update_data(data)
 	post_id = data['post_id']
-	post = Post.get(id=post_id)
+	post = DictObject.get(id=post_id)
 	sended_post = SendedPost.get_or_none(post_id=post_id)
 	post_data = db.from_post_id_to_data(post_id)
 	await call.message.delete()
@@ -1866,7 +1871,7 @@ async def content_plan_postpone_time_back(call: types.CallbackQuery, state: FSMC
 
 	await call.message.delete()
 
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	post_data = db.from_post_id_to_data(data['post_id'])
 
 	time_post = PostTime.get(post_id=data['post_id'])
@@ -1886,7 +1891,7 @@ async def content_plan_delete_time_back(call: types.CallbackQuery, state: FSMCon
 	await state.update_data(data)
 
 	post_id = data['post_id']
-	post = Post.get(id=post_id)
+	post = DictObject.get(id=post_id)
 	sended_post = SendedPost.get_or_none(post_id=post_id)
 	post_data = db.from_post_id_to_data(post_id)
 	mes = await utils.send_old_post_to_user(call.from_user.id, post_data)
@@ -1980,7 +1985,7 @@ async def content_plan_copy_post_send_time(message: types.Message, state: FSMCon
 	await message.answer(TEXTS.success_post_time.format(title=channel.title, date=human_date))
 
 	# post_id = data['post_id']
-	# post = Post.get(id=post_id)
+	# post = DictObject.get(id=post_id)
 	# sended_post = SendedPost.get_or_none(post_id=post_id)
 	# post_data = db.from_post_id_to_data(post_id)
 	# mes = await utils.send_old_post_to_user(message.from_user.id, post_data)
@@ -2034,7 +2039,6 @@ async def content_plan_parse_postpone_time(message: types.Message, state: FSMCon
 
 	# await message.answer('Готово')
 	try:
-		await bot.delete_message(message.from_user.id, data.pop('process_message_id'))
 		await bot.delete_message(message.from_user.id, message.message_id)
 	except Exception:
 		pass
@@ -2044,15 +2048,14 @@ async def content_plan_parse_postpone_time(message: types.Message, state: FSMCon
 	await user_state.ContentPlan.Main.set()
 	await state.update_data(data)
 
-	post = Post.get(id=data['post_id'])
-	post_data = db.from_post_id_to_data(data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 
 	time_post = PostTime.get(post_id=data['post_id'])
 	chat = await bot.get_chat(time_post.user_id)
 	status = '⏳ Отложен'
 	post_type = 'рекламный 💰' if post.price else 'обычный'
 	author = f"<a href='https://t.me/{chat.username}'>{chat.first_name}</a>"
-	await message.answer(TEXTS.open_post_text.format(status=status, post_type=post_type, author=author),
+	await bot.edit_message_text(TEXTS.open_post_text.format(status=status, post_type=post_type, author=author), message.chat.id, data.pop('process_message_id'),
 							  reply_markup=inline.open_post(post_date=time_post.human_time, post=post))
 
 async def content_plan_delete_time(call: types.CallbackQuery, state: FSMContext):
@@ -2072,7 +2075,7 @@ async def content_plan_delete_time(call: types.CallbackQuery, state: FSMContext)
 			await bot.answer_callback_query(call.id, TEXTS.error_parse_time)
 			return
 		
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	post.delete_human = human_date
 	post.delete_time = seconds + post_time.time
 	post.save()
@@ -2119,7 +2122,7 @@ async def content_plan_parse_delete_time(message: types.Message, state: FSMConte
 		if t+10 <= post_time.time:
 			await message.answer(TEXTS.error_parse_time)
 			return
-	post = Post.get(id=data['post_id'])
+	post = DictObject.get(id=data['post_id'])
 	post.delete_human = human_date
 	post.delete_time = seconds + time.time()
 	post.save()
@@ -4347,43 +4350,56 @@ async def filter_sub(call: types.CallbackQuery, state: FSMContext):
 async def filter_show_result(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
 
+	print('Filter show result')
+
+
 	err = data.get('err')
 	views = data.get('views')
 	sub = data.get('sub')
+
+	print(f'{err=} {views=} {sub=}')
+
+	if err: err = [20*(err-1), 20*err]
 
 	if not(err or views or sub):
 		await call.message.answer('Установите хотя бы 1 фильтр')
 		return
 
-	channels = FindChannel.select()
-	resp = []
-
-	for channel in channels:
-		flag = True
-		if err:
-			channel_err = round(100 * channel.views / channel.subscribers, 1)  if channel.subscribers else 0
-			print(channel_err)
-			print((err-1) * 20)
-			if not((err-1) * 20 < channel_err < (err) * 20):
-				flag = False
-				continue
-		if views:
-			if not(views[0] < channel.views < views[0]):
-				flag = False
-				continue
-
-		if sub:
-			if not(sub[0] < channel.subscribers < sub[0]):
-				flag = False
-				continue
-
-		if flag:
-			resp.append(channel)
+	channels = FindChannel.select().where(
+		(((FindChannel.err >= err[0]) & (FindChannel.err <= err[1])) if err else True)
+		&
+		(((FindChannel.views >= views[0]) & (FindChannel.views <= views[1])) if views else True)
+		&
+		(((FindChannel.subscribers >= sub[0]) & (FindChannel.subscribers <= sub[1])) if sub else True)
+	)
+	# resp = []
+	#
+	# for channel in channels:
+	# 	flag = True
+	# 	if err:
+	# 		channel_err = round(100 * channel.views / channel.subscribers, 1)  if channel.subscribers else 0
+	# 		print(channel_err)
+	# 		print((err-1) * 20)
+	# 		if not((err-1) * 20 < channel_err < (err) * 20):
+	# 			flag = False
+	# 			continue
+	# 	if views:
+	# 		if not(views[0] < channel.views < views[0]):
+	# 			flag = False
+	# 			continue
+	#
+	# 	if sub:
+	# 		if not(sub[0] < channel.subscribers < sub[0]):
+	# 			flag = False
+	# 			continue
+	#
+	# 	if flag:
+	# 		resp.append(channel)
 
 	await user_state.SendKeyword.ChooseChannel.set()
-	await state.update_data(data, channels=list(resp), type='filters')
+	await state.update_data(data, channels=list(channels), type='filters')
 
-	await call.message.edit_text(TEXTS.choose_channel, reply_markup=inline.choose_find_channel(resp))
+	await call.message.edit_text(TEXTS.choose_channel, reply_markup=inline.choose_find_channel(channels))
 
 
 
@@ -4949,8 +4965,9 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_callback_query_handler(basket_find_channel_start, state='*', text_startswith='basket_find_channel')
 
 
+	dp.register_callback_query_handler(change_page_to_find_adv, state='*', text_startswith='change_page_to_find_adv$')
 	dp.register_callback_query_handler(choose_cat_to_find_adv, state='*', text_startswith='choose_cat_to_find_adv$')
-	
+
 
 	dp.register_callback_query_handler(filter_err, state=user_state.SettingFilters.Main, text='filter_err')
 	dp.register_callback_query_handler(filter_views, state=user_state.SettingFilters.Main, text='filter_views')

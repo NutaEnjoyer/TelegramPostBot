@@ -32,6 +32,9 @@ def get_channel_subscriber(channel_id):
 
 	r = requests.get(base_url, params=params)
 
+	if r.json()['status'] != 'ok':
+		return 0
+
 	return r.json()['response'][0]['participants_count']
 
 def get_channel_views(channel_id):
@@ -41,7 +44,9 @@ def get_channel_views(channel_id):
 	params['channelId'] = channel_id
 
 	r = requests.get(base_url, params=params)
-	return r.json()
+	if r.json()['status'] != 'ok':
+		return 0
+	return r.json()['response'][0]['views_count']
 
 def get_channel_avg_posts_reach(channel_id):
 	base_url = 'https://api.tgstat.ru/channels/avg-posts-reach'
@@ -50,8 +55,9 @@ def get_channel_avg_posts_reach(channel_id):
 	params['channelId'] = channel_id
 
 	r = requests.get(base_url, params=params)
-
-	return r.json()
+	if r.json()['status'] != 'ok':
+		return 0
+	return r.json()['response'][0]['avg_posts_reach']
 
 def get_channel_err(channel_id):
 	base_url = 'https://api.tgstat.ru/channels/err'
@@ -60,9 +66,8 @@ def get_channel_err(channel_id):
 	params['channelId'] = channel_id
 
 	r = requests.get(base_url, params=params)
-	print(r)
-	print(r.json())
-	print(r.json()['response'][0]['err'])
+	if r.json()['status'] != 'ok':
+		return 0
 	return r.json()['response'][0]['err']
 
 def add_channel(channelName):
@@ -92,11 +97,10 @@ def get_post_views(channel_id, post_id):
 
 	try:
 		js = r.json()
-		print(r)
-		print(js)
 		return js["response"]["views"]
 	except Exception as e:
 		return 0
+
 
 def main(argv):
 	resp = get_post_views(-1001868668014, 146)
