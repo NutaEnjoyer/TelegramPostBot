@@ -26,6 +26,9 @@ from keyboards.reply import start_offer_access, add_channel, set_schedule
 from db import functions as db
 
 
+async def developer_handler(message: types.Message, state: FSMContext):
+	await message.answer("<b>Developer: @Bandana_ref\nРазработчик: @Bandana_ref</b>")
+
 async def start_handler(message: types.Message, state: FSMContext):
 	await state.finish()
 	user = db.add_user(user_id=message.from_user.id)
@@ -4750,6 +4753,7 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_message_handler(successful_payment, content_types=types.message.ContentType.SUCCESSFUL_PAYMENT)
 	
 	dp.register_message_handler(start_handler, commands=['start', 'restart'], state='*')
+	dp.register_message_handler(developer_handler, commands=['developer'], state='*')
 	dp.register_message_handler(support_handler, commands=['support'], state='*')
 	dp.register_message_handler(work_handler, commands=['work'], state='*')
 	dp.register_message_handler(check_user_handler, commands=['check_user'], state='*')
