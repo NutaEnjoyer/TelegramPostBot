@@ -966,6 +966,81 @@ async def send_post_to_channel_by_post_id(channel_id, user_id, post_id):
 
 	await send_post_to_channel(channel_id, user_id, data)
 
+def just_parse_time(text):
+	spl = text.split()
+	if len(spl) > 2:
+		return
+
+	if len(spl) == 2:
+		time = spl[0]
+		date = spl[1]
+		spl = time.split(':')
+		if len(spl) > 2: return
+
+		if len(spl) == 2:
+			hour = spl[0]
+			minut = spl[1]
+
+		else:
+			hour = spl[0][:-2]
+			minut = spl[0][-2:]
+
+		if not (hour.isdigit() and minut.isdigit()): return
+
+		hour = int(hour)
+		minut = int(minut)
+
+		if not (hour >= 0 and hour < 24 and minut >= 0 and minut < 60): return
+
+	else:
+		time = spl[0]
+		print(time)
+		spl = time.split(':')
+		print(spl)
+
+		if len(spl) > 2: return
+
+		if len(spl) == 2:
+			hour = spl[0]
+			minut = spl[1]
+
+		else:
+			hour = spl[0][:-2]
+			minut = spl[0][-2:]
+
+		print(hour, minut)
+		if not (hour.isdigit() and minut.isdigit()): return
+
+		hour = int(hour)
+		minut = int(minut)
+
+		if not (hour >= 0 and hour < 24 and minut >= 0 and minut < 60): return
+
+	return f"""{hour if hour > 9 else ("0" + str(hour))}:{minut if minut > 9 else ("0" + str(minut))}"""
+
+def get_today_number():
+	from datetime import datetime
+	return (datetime.now() - datetime(1970, 1, 1)).days
+
+def slot_status(channel_id, day, slot):
+	ad_slot = AdSlot.select().where(
+		(AdSlot.channel_id == channel_id) & (AdSlot.day == day) & (AdSlot.slot == slot))
+	if bool(list(ad_slot)):
+		return ad_slot[0]
+	else:
+		return False
+
+def create_slot(channel_id, day, slot):
+	ad = AdSlot.create(channel_id=channel_id, day=day, slot=slot)
+	ad.save()
+
+
+def calculate_future_date(days_ahead):
+	from datetime import datetime, timedelta
+
+	today = datetime.now()
+	future_date = today + timedelta(days=days_ahead)
+	return future_date.strftime('%d.%m')
 
 def parse_time(data, plus):
 	from datetime import datetime
@@ -1026,7 +1101,10 @@ def parse_time(data, plus):
 
 	else:
 		time = spl[0]
+		print(time)
 		spl = time.split(':')
+		print(spl)
+
 		if len(spl) > 2: return
 
 		if len(spl) == 2:
@@ -1037,6 +1115,7 @@ def parse_time(data, plus):
 			hour = spl[0][:-2]
 			minut = spl[0][-2:]
 
+		print(hour, minut)
 		if not (hour.isdigit() and minut.isdigit()): return
 
 		hour = int(hour)

@@ -416,3 +416,42 @@ def placements_stat(week, month, future, all):
 
 </b>'''
 	return text
+
+def manager_message(m: Manager):
+	text = f"""{m.name}
+
+Процент: {m.rate} %
+Реквезиты: {m.requisites}"""
+
+	return text
+
+
+def schedule_message(chat, schedule):
+	if schedule.place_1 is None:
+		schedule_message = "Не задано"
+	else:
+		schedule_message = ""
+
+		places = [schedule.place_1, schedule.place_2, schedule.place_3,
+				  schedule.place_4, schedule.place_5, schedule.place_6,
+				  schedule.place_7, schedule.place_8, schedule.place_9]
+		for place in places:
+			schedule_message += (place + '\n') if place else ''
+
+
+	text = f"""<b>Расписание <a href="{chat.invite_link}">{chat.title}</a></b>"""
+# 	text = f"""<b>Расписание <a href="{chat.invite_link}">{chat.title}</a></b>
+#
+# <code>{schedule_message}</code>"""
+
+	return text
+
+edit_schedule_message = """Пришлите новое расписание рекламных постов. Новую позицию начинайте с новой строки, например: 
+
+10:00
+14:00
+18:00
+22:00
+
+<b>Учтите, что при изменении формата расписания, расписание очищается!</b>
+"""

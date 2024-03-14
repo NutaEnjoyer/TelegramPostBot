@@ -109,6 +109,21 @@ class ManagerPlacement(BaseModel):
 	active = BooleanField(default=True)
 	human_time = CharField()
 	time = IntegerField()
+	slot_id = IntegerField(null=True)
+	day = IntegerField(null=True)
+
+
+	def delete_instance(self, *args, **kwargs):
+		if self.slot_id and self.day:
+			ad_slot = AdSlot.select().where(
+				(AdSlot.channel_id == self.channel_id)
+				& (AdSlot.slot == self.slot_id)
+				& (AdSlot.day == self.day)
+			)
+			if list(ad_slot):
+				ad_slot[0].delete_instance()
+
+		super().delete_instance(*args, **kwargs)
 
 
 class Keyboard(BaseModel):
@@ -271,13 +286,32 @@ class DeferredVerification(BaseModel):
 	from_admin_bot = BooleanField(default=False)
 	active = BooleanField(default=True)
 
-def main(argv):
-	# database.drop_tables([PostInfo])
-	# database.create_tables([PostInfo])
-	database.execute_sql('ALTER TABLE postinfo ADD COLUMN delete_time INTEGER DEFAULT NULL;')
+class ChannelSchedule(BaseModel):
+	channel_id = IntegerField()
+	place_1 = CharField(null=True)
+	place_2 = CharField(null=True)
+	place_3 = CharField(null=True)
+	place_4 = CharField(null=True)
+	place_5 = CharField(null=True)
+	place_6 = CharField(null=True)
+	place_7 = CharField(null=True)
+	place_8 = CharField(null=True)
+	place_9 = CharField(null=True)
 
-	# database.create_tables([ManagerPlacement])
-	# database.create_tables([DictObject])
+
+class AdSlot(BaseModel):
+	channel_id = IntegerField()
+	day = IntegerField()
+	slot = IntegerField()
+	status = IntegerField(default=0) # 0 - free  1 - waiting  2 - selled
+	manager_id = IntegerField(null=True)
+
+def main(argv):
+	database.execute_sql('ALTER TABLE managerplacement ADD COLUMN slot_id INTEGER DEFAULT NULL;')
+	database.execute_sql('ALTER TABLE managerplacement ADD COLUMN day INTEGER DEFAULT NULL;')
+
+
+	database.create_tables([ChannelSchedule, AdSlot])
 
 	pass
 

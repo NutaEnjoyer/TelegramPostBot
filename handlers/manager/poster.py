@@ -8,7 +8,7 @@ from bot.start_bot_container import bot
 from bot_data import config
 from db import functions as db
 from db.models import Channel, Manager, ManagerPlacement, PostInfo, ChannelConfiguration, Schedule, DictObject, Dict, \
-	PostTime
+	PostTime, ChannelSchedule, AdSlot
 from keyboards import inline
 from . import templates, utils
 
@@ -171,7 +171,7 @@ async def poster_next_post(call: types.CallbackQuery, state: FSMContext):
 	await  state.set_state(states.Poster.sendTime)
 	await state.update_data(post_date=0, date=0, message_id=call.message.message_id)
 	data = await state.get_data()
-	await call.message.edit_text(templates.poster_postpone_message, reply_markup=inline.postpone(data))
+	await call.message.edit_text(templates.poster_postpone_message, reply_markup=templates.postpone(data.get('channel_id')))
 
 async def poster_postpone_back_handler(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
@@ -362,18 +362,25 @@ async def poster_change_postpone_date_handlers(call: types.CallbackQuery, state:
 	await call.message.edit_text(templates.poster_postpone_message, reply_markup=inline.moder_postpone(data))
 
 
-async def poster_send_time_handler(message: types.Message, state: FSMContext):
+async def post_click_time_handlers(call: types.CallbackQuery, state: FSMContext):
 	data = await state.get_data()
-	parsed = utils.parse_time(message.text, data['post_date'])
-	if parsed is None:
-		await message.answer(templates.error_parse_time_message)
-		return
-	await bot.delete_message(message.from_user.id, data['message_id'])
-	human_date = parsed['human_date']
-	seconds = parsed['seconds']
 
 	channel = Channel.get(id=data['channel_id'])
 	channel_id = data['channel_id']
+
+	schedule = ChannelSchedule.get(channel_id=channel.channel_id)
+	tm = getattr(schedule, f"place_{int(call.data.split('$')[2])+1}")
+
+	date = utils.calculate_future_date(int(call.data.split('$')[1]))
+	print(date)
+
+	parsed = utils.parse_time(f"{tm} {date}", 0)
+
+
+	await call.message.delete()
+	human_date = parsed['human_date']
+	seconds = parsed['seconds']
+
 	ch = await bot.get_chat(channel.channel_id)
 
 	p = PostInfo.get(id=data['info'])
@@ -388,7 +395,7 @@ async def poster_send_time_handler(message: types.Message, state: FSMContext):
 		moder_id = config.MODERATION_CHANNEL_ID
 		moder = True
 
-	dictObject = DictObject.create(owner_id=message.from_user.id,
+	dictObject = DictObject.create(owner_id=call.from_user.id,
 								   price=p.price,
 								   is_advert=True)
 	dictObject.save()
@@ -405,16 +412,18 @@ async def poster_send_time_handler(message: types.Message, state: FSMContext):
 		object.save()
 
 	manager_placement = ManagerPlacement.create(
-		manager_id=message.from_user.id,
+		manager_id=call.from_user.id,
 		channel_id=channel.channel_id,
-		user_id=message.from_user.id,
+		user_id=call.from_user.id,
 		admin_id=admin_id,
 		dict_object_id=dictObject.id,
 		time=seconds + time.time(),
 		human_time=human_date,
 		price=p.price,
 		info=p.id,
-		client_name=data['client_name']
+		client_name=data['client_name'],
+		slot_id=int(call.data.split('$')[2]),
+		day=int(call.data.split('$')[1]),
 	)
 
 	manager_placement.save()
@@ -424,12 +433,12 @@ async def poster_send_time_handler(message: types.Message, state: FSMContext):
 	await utils.send_message_dicts(data['dicts'], moder_id)
 
 
-	await bot.send_message(moder_id, templates.moder_manager_message(manager_placement, message.from_user, ch), reply_markup=templates.moder_manager_post(manager_placement.id))
+	await bot.send_message(moder_id, templates.moder_manager_message(manager_placement, call.from_user, ch), reply_markup=templates.moder_manager_post(manager_placement.id))
 
 	# await message.answer(human_date)
 
 	await state.finish()
-	await message.answer('Пост(ы) получен(ы) и отправлен(ы) на согласование', reply_markup=templates.manager_menu())
+	await call.message.answer('Пост(ы) получен(ы) и отправлен(ы) на согласование', reply_markup=templates.manager_menu())
 
 
 async def poster_moder_manager_yes(call: types.CallbackQuery, state: FSMContext):
@@ -438,6 +447,14 @@ async def poster_moder_manager_yes(call: types.CallbackQuery, state: FSMContext)
 
 	manager_placement.is_moderated = True
 	manager_placement.save()
+
+	ad_slot = AdSlot.create(
+		channel_id=manager_placement.channel_id,
+		day=manager_placement.day,
+		slot=manager_placement.slot_id
+	)
+
+	ad_slot.save()
 
 	channel = Channel.get(channel_id=manager_placement.channel_id)
 
@@ -473,6 +490,50 @@ async def poster_moder_manager_no(call: types.CallbackQuery, state: FSMContext):
 
 	await call.message.delete()
 	await bot.send_message(manager_placement.manager_id, templates.moder_manager_post_no_to_manager(manager_placement, ch))
+
+	manager_placement.delete_instance()
+
+
+async def comment_poster_moder_manager_no(call: types.CallbackQuery, state: FSMContext):
+	await state.set_state(states.Poster.sendCommentToManager)
+	await state.update_data(manager_placement_id=int(call.data.split('$')[1]), delete_it=call.message.message_id)
+
+	await call.message.edit_text(templates.poster_comment_to_manager, reply_markup=templates.only_cancel())
+
+
+
+async def send_cancel_comment_poster_moder_manager_no(call: types.CallbackQuery, state: FSMContext):
+	data = await state.get_data()
+	await state.finish()
+
+	id = data.get('manager_placement_id')
+	manager_placement = ManagerPlacement.get(id=id)
+
+	ch = await bot.get_chat(manager_placement.channel_id)
+
+	await call.message.delete()
+
+	await bot.send_message(manager_placement.manager_id,
+						   templates.moder_manager_post_no_to_manager(manager_placement, ch))
+
+	manager_placement.delete_instance()
+
+async def send_comment_poster_moder_manager_no(message: types.Message, state: FSMContext):
+	data = await state.get_data()
+	await state.finish()
+
+	id = data.get('manager_placement_id')
+	manager_placement = ManagerPlacement.get(id=id)
+
+	ch = await bot.get_chat(manager_placement.channel_id)
+
+	await bot.delete_message(message.chat.id, data.get('delete_it'))
+	await bot.delete_message(message.chat.id, message.message_id)
+
+	await bot.send_message(manager_placement.manager_id, templates.moder_manager_post_no_to_manager(manager_placement, ch, message.text))
+
+	manager_placement.delete_instance()
+
 
 async def service_poster_manager_post_paid(call: types.CallbackQuery, state: FSMContext):
 	print('something')
@@ -552,11 +613,19 @@ def register_poster_handlers(dp: Dispatcher):
 
 	dp.register_callback_query_handler(poster_change_postpone_date_handlers,
 									   state=states.Poster.sendTime, text_startswith='postpone_date$')
-	dp.register_message_handler(poster_send_time_handler, content_types=['text'], state=states.Poster.sendTime)
+
+	dp.register_callback_query_handler(post_click_time_handlers, state=states.Poster.sendTime, text_startswith="postpone")
+
+	# dp.register_message_handler(poster_send_time_handler, content_types=['text'], state=states.Poster.sendTime)
 
 
 	dp.register_callback_query_handler(poster_moder_manager_yes, text_startswith="moder_manager_post_yes", state="*")
 	dp.register_callback_query_handler(poster_moder_manager_no, text_startswith="moder_manager_post_no", state="*")
+	dp.register_callback_query_handler(comment_poster_moder_manager_no, text_startswith="moder_manager_post_comment_no", state="*")
+
+	dp.register_callback_query_handler(send_cancel_comment_poster_moder_manager_no, text_startswith="cancel", state=states.Poster.sendCommentToManager)
+	dp.register_message_handler(send_comment_poster_moder_manager_no, content_types=['text'], state=states.Poster.sendCommentToManager)
+
 
 	dp.register_callback_query_handler(poster_manager_post_paid, text_startswith="manager_post_paid", state="*")
 

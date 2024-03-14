@@ -35,13 +35,15 @@ def set_schedule():
 def main_keyboard(event):
 
 	keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-	b1 = types.KeyboardButton('Публикации')
-	b2 = types.KeyboardButton('Настройки')
-	b3 = types.KeyboardButton('Реклама')
+	b0 = types.KeyboardButton('Публикации')
+	b1 = types.KeyboardButton('Расписание')
+	b2 = types.KeyboardButton('Реклама')
+	b3 = types.KeyboardButton('Настройки')
 	b4 = types.KeyboardButton('Кабинет')
 
 	b5 = types.KeyboardButton('Уголок менеджера')
 
+	keyboard.add(b0)
 	keyboard.add(b1, b2)
 	keyboard.add(b3, b4)
 

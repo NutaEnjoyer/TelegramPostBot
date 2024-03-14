@@ -152,6 +152,9 @@ class ManagerManage(StatesGroup):
 	OpenRedactor = State()
 	ChooseConfirmer = State()
 
+	EditRate = State()
+	EditRequisites = State()
+
 class WlNewTime(StatesGroup):
 	SendTime = State()
 	
@@ -162,3 +165,8 @@ class Admin(StatesGroup):
 
 class CheckUser(StatesGroup):
 	SendMessage = State()
+
+class Schedule(StatesGroup):
+	ChooseChannel = State()
+	Main = State()
+	SendSchedule = State()

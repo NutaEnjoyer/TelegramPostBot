@@ -2,7 +2,10 @@ from pprint import pprint
 
 from aiogram import types
 from bot_data import config
-from db.models import Dict, DictObject, Moderator, ReactionsKeyboard, Reaction, Button, Post, FindChannel, Category, Saved, Basket, PostInfo
+from db.models import Dict, DictObject, Moderator, ReactionsKeyboard, Reaction, Button, Post, FindChannel, Category, \
+	Saved, Basket, PostInfo, AdSlot
+from handlers.user import utils
+
 
 def withdraw_men():
 	keyboard = types.InlineKeyboardMarkup()
@@ -24,11 +27,15 @@ def moder(id):
 
 def manag(id):
 	keyboard = types.InlineKeyboardMarkup()
-	b1 = types.InlineKeyboardButton(text='Удалить', callback_data=f'delete_manag${id}')
-	b2 = types.InlineKeyboardButton(text='Назад', callback_data='back')
+	b1 = types.InlineKeyboardButton(text='Изменить процент', callback_data=f'edit_manag_rate${id}')
+	b2 = types.InlineKeyboardButton(text='Изменить реквезиты', callback_data=f'edit_manag_req${id}')
+	b3 = types.InlineKeyboardButton(text='Удалить', callback_data=f'delete_manag${id}')
+	b4 = types.InlineKeyboardButton(text='Назад', callback_data='back')
 
 	keyboard.add(b1)
 	keyboard.add(b2)
+	keyboard.add(b3)
+	keyboard.add(b4)
 
 	return keyboard
 
@@ -1776,5 +1783,53 @@ def my_posts_b(posts):
 	b4 = types.InlineKeyboardButton(text='Назад', callback_data=f'back')
 
 	keyboard.add(b4)
+
+	return keyboard
+
+
+
+def schedule_menu(schedule):
+
+	bf = types.InlineKeyboardButton('🔵', callback_data='nothing')
+	bs = types.InlineKeyboardButton('Сегодня', callback_data='nothing')
+	bt = types.InlineKeyboardButton('Завтра', callback_data='nothing')
+	bgt = types.InlineKeyboardButton('Послезавтра', callback_data='nothing')
+
+
+	# keyboard.add(bf, bs, bt, bgt)
+
+	now_day = utils.get_today_number()
+
+	buttons = []
+
+	for i in range(10):
+		line = getattr(schedule, f'place_{i+1}')
+		if not line: break
+
+		"🆓"
+		"🏷️"
+
+		ad_slot_1 = "✅" if utils.slot_status(schedule.channel_id, now_day, i) else "❌"
+		ad_slot_2 = "✅" if utils.slot_status(schedule.channel_id, now_day + 1, i) else "❌"
+		ad_slot_3 = "✅" if utils.slot_status(schedule.channel_id, now_day + 2, i) else "❌"
+
+		b0 = types.InlineKeyboardButton(line, callback_data=f'nothing')
+		b1 = types.InlineKeyboardButton(ad_slot_1, callback_data=f'click_schedule${schedule.channel_id}${now_day}${i}')
+		b2 = types.InlineKeyboardButton(ad_slot_2, callback_data=f'click_schedule${schedule.channel_id}${now_day+1}${i}')
+		b3 = types.InlineKeyboardButton(ad_slot_3, callback_data=f'click_schedule${schedule.channel_id}${now_day+2}${i}')
+
+		buttons.append([b0, b1, b2, b3])
+
+	keyboard = types.InlineKeyboardMarkup(
+		inline_keyboard=[
+			[bf, bs, bt, bgt],
+			*buttons
+		]
+	)
+	b1 = types.InlineKeyboardButton('Изменить', callback_data='edit_schedule')
+	b2 = types.InlineKeyboardButton('Назад', callback_data='back_to_choose_channel_schedule')
+
+	keyboard.add(b1)
+	keyboard.add(b2)
 
 	return keyboard

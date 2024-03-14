@@ -2406,7 +2406,7 @@ async def manager_manage_open_moder(call: types.CallbackQuery, state: FSMContext
 	await user_state.ManagerManage.OpenRedactor.set()
 	await state.update_data(data)
 
-	await call.message.edit_text(f'{m.name}', reply_markup=inline.manag(m.id))
+	await call.message.edit_text(TEXTS.manager_message(m), reply_markup=inline.manag(m.id))
 
 	
 async def redactor_manage_delete_moder(call: types.CallbackQuery, state: FSMContext):
@@ -2429,6 +2429,53 @@ async def redactor_manage_delete_manag(call: types.CallbackQuery, state: FSMCont
 	await call.message.edit_text(f'Менеджеры канала:', reply_markup=inline.manager_manage(redactors))
 	await user_state.ManagerManage.Main.set()
 	await state.update_data(data)
+
+
+async def redactor_manage_edit_rate_manag(call: types.CallbackQuery, state: FSMContext):
+	await state.set_state(user_state.ManagerManage.EditRate)
+
+	m = await call.message.answer("Введите новый процент менеджера", reply_markup=inline.only_back())
+	await state.update_data(delete_it=m.message_id, id=int(call.data.split('$')[1]), main_message=call.message.message_id)
+
+async def redactor_manage_edit_req_manag(call: types.CallbackQuery, state: FSMContext):
+	await state.set_state(user_state.ManagerManage.EditRequisites)
+
+	m = await call.message.answer("Введите новые реквезиты для менеджера", reply_markup=inline.only_back())
+	await state.update_data(delete_it=m.message_id, id=int(call.data.split('$')[1]), main_message=call.message.message_id)
+
+async def back_redactor_manage_edit_manag(call: types.CallbackQuery, state: FSMContext):
+	await state.set_state(user_state.ManagerManage.OpenRedactor)
+	await call.message.delete()
+
+	await state.update_data(delete_it=None, id=None)
+
+async def send_redactor_manage_edit_rate_manag(message: types.Message, state: FSMContext):
+	data = await state.get_data()
+	await state.set_state(user_state.ManagerManage.OpenRedactor)
+	if not message.text.isdigit():
+		await message.answer('Процент это всегда число!')
+		return
+	m = Manager.get_or_none(id=data.get('id'))
+	m.rate = int(message.text)
+	m.save()
+
+	await bot.delete_message(message.chat.id, message.message_id)
+	await bot.delete_message(message.chat.id, data.get('delete_it'))
+
+	await bot.edit_message_text(TEXTS.manager_message(m), message.chat.id, data.get('main_message'), reply_markup=inline.manag(m.id))
+
+async def send_redactor_manage_edit_req_manag(message: types.Message, state: FSMContext):
+	data = await state.get_data()
+	await state.set_state(user_state.ManagerManage.OpenRedactor)
+
+	m = Manager.get_or_none(id=data.get('id'))
+	m.requisites = message.text
+	m.save()
+
+	await bot.delete_message(message.chat.id, message.message_id)
+	await bot.delete_message(message.chat.id, data.get('delete_it'))
+
+	await bot.edit_message_text(TEXTS.manager_message(m), message.chat.id, data.get('main_message'), reply_markup=inline.manag(m.id))
 
 
 
@@ -5010,6 +5057,19 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_callback_query_handler(manager_manage_open_moder, state=user_state.ManagerManage.Main, text_startswith='open_manager')
 	dp.register_callback_query_handler(redactor_manage_delete_moder, state=user_state.ModerationManage.OpenRedactor, text_startswith='delete_moder')
 	dp.register_callback_query_handler(redactor_manage_delete_manag, state=user_state.ManagerManage.OpenRedactor, text_startswith='delete_manag')
+	dp.register_callback_query_handler(redactor_manage_edit_rate_manag, state=user_state.ManagerManage.OpenRedactor, text_startswith='edit_manag_rate')
+	dp.register_callback_query_handler(redactor_manage_edit_req_manag, state=user_state.ManagerManage.OpenRedactor, text_startswith='edit_manag_req')
+	dp.register_callback_query_handler(setting_channel_manager_manage, state=user_state.ManagerManage.OpenRedactor, text_startswith='back')
+
+	dp.register_message_handler(send_redactor_manage_edit_rate_manag, state=user_state.ManagerManage.EditRate, content_types=['text'])
+	dp.register_message_handler(send_redactor_manage_edit_req_manag, state=user_state.ManagerManage.EditRequisites, content_types=['text'])
+
+	dp.register_callback_query_handler(back_redactor_manage_edit_manag, state=[
+		user_state.ManagerManage.EditRequisites,
+		user_state.ManagerManage.EditRate
+		], text='back')
+
+
 	dp.register_callback_query_handler(moderation_manage_categories_choose, state=user_state.ModerationManage.ChooseCat, text_startswith='choose_cat_to_confirm')
 	dp.register_callback_query_handler(moderation_manage_choose_confirmer, state=user_state.ModerationManage.ChooseConfirmer, text_startswith='choose_moder_to_confirm')
 	dp.register_callback_query_handler(moderation_manage_categories_back, state=user_state.ModerationManage.ChooseCat, text_startswith='back')

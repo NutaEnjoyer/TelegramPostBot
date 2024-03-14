@@ -1,6 +1,7 @@
 from aiogram import types
 
-from db.models import Manager, PostInfo
+from db.models import Manager, PostInfo, ChannelSchedule, Channel
+from handlers.user import utils
 
 manager_button = "Уголок менеджера"
 
@@ -11,7 +12,7 @@ manager_text = """<b>( 〃● ₃● ) ~
 make_post_button = "Создать рекламный пост"
 make_repost_button = "Создать репост"
 cabinet_button = "Личный кабинет"
-schedule_button = "Расписание"
+schedule_button = "Расписание рекламы"
 menu_button = "Меню"
 
 
@@ -293,10 +294,12 @@ def moder_manager_post(id):
 
 	b1 = types.InlineKeyboardButton(text='✅ Принять', callback_data=f'moder_manager_post_yes${id}')
 	b2 = types.InlineKeyboardButton(text='❌ Отказать', callback_data=f'moder_manager_post_no${id}')
-	b3 = types.InlineKeyboardButton(text='⏳ Другое время ⏳', callback_data=f'moder_manager_post_time${id}')
+	b3 = types.InlineKeyboardButton(text='❌ Отказать с комментарием 💬', callback_data=f'moder_manager_post_comment_no${id}')
+	b4 = types.InlineKeyboardButton(text='⏳ Другое время ⏳', callback_data=f'moder_manager_post_time${id}')
 
 	keyboard.add(b1, b2)
-	# keyboard.add(b3)
+	keyboard.add(b3)
+	# keyboard.add(b4)
 
 	return keyboard
 
@@ -325,12 +328,12 @@ def paid_manager_message(manager_placement, url, chat, channel):
 	return text
 
 
-def moder_manager_post_no_to_manager(manager_placement, channel):
+def moder_manager_post_no_to_manager(manager_placement, channel, comment=None):
 	text = f"""<b>Администратор <a href="{channel.invite_link}">{channel.title}</a> отменил публикацию 🔝
 
 Время: {manager_placement.human_time}
 
-	</b>"""
+{f"Комментарий: {comment}" if comment else ''}	</b>"""
 
 	return text
 
@@ -361,3 +364,70 @@ def paid_manager_message_menu(id):
 			[types.InlineKeyboardButton("Оплачено 🤩", callback_data=f"manager_post_true_paid${id}")]
 		]
 	)
+
+poster_comment_to_manager = "Пришлите сообщение для менеджера"
+
+def only_cancel():
+	return types.InlineKeyboardMarkup(
+		inline_keyboard=[
+			[types.InlineKeyboardButton(text='Отмена', callback_data='cancel')]
+		]
+	)
+
+def postpone(channel_id):
+	print(channel_id)
+	channel = Channel.get(id=channel_id)
+	schedule = ChannelSchedule.get(channel_id=channel.channel_id)
+
+	bf = types.InlineKeyboardButton('🔵', callback_data='nothing')
+	bs = types.InlineKeyboardButton('Сегодня', callback_data='nothing')
+	bt = types.InlineKeyboardButton('Завтра', callback_data='nothing')
+	bgt = types.InlineKeyboardButton('Послезавтра', callback_data='nothing')
+
+	# keyboard.add(bf, bs, bt, bgt)
+
+	now_day = utils.get_today_number()
+
+	buttons = []
+
+	for i in range(10):
+		line = getattr(schedule, f'place_{i + 1}')
+		if not line: break
+
+		if utils.slot_status(schedule.channel_id, now_day, i):
+			b1 = types.InlineKeyboardButton("✅", callback_data=f'nothing')
+		else:
+			b1 = types.InlineKeyboardButton("❌", callback_data=f'postpone${now_day + 1}${i}')
+
+
+
+		if utils.slot_status(schedule.channel_id, now_day + 1, i):
+			b2 = types.InlineKeyboardButton("✅", callback_data=f'nothing')
+		else:
+			b2 = types.InlineKeyboardButton("❌", callback_data=f'postpone${now_day + 1}${i}')
+
+
+
+		if utils.slot_status(schedule.channel_id, now_day + 2, i):
+			b3 = types.InlineKeyboardButton("✅", callback_data=f'nothing')
+		else:
+			b3 = types.InlineKeyboardButton("❌", callback_data=f'postpone${now_day + 1}${i}')
+
+
+		b0 = types.InlineKeyboardButton(line, callback_data=f'nothing')
+
+		buttons.append([b0, b1, b2, b3])
+
+	keyboard = types.InlineKeyboardMarkup(
+		inline_keyboard=[
+			[bf, bs, bt, bgt],
+			*buttons
+		]
+	)
+
+	b = types.InlineKeyboardButton('Назад', callback_data='back')
+
+	keyboard.add(b)
+
+	return keyboard
+

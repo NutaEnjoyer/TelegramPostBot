@@ -29,8 +29,34 @@ def create_keyboard(markup):
 				pass
 	return kb.id
 
-
 def content_plan_text(posts_1, posts_2, posts_3):
+
+	import datetime
+	import pytz
+
+	texts = "( •_ •) ▬▬ι═══════ﺤ\n"
+
+	today = datetime.datetime.now(tz=pytz.timezone("Asia/Qatar")).today() + datetime.timedelta(days=0)
+	texts += f'<b>Сегодня {config.WEEKDAYS[today.weekday()]}, {str(today.day)} {config.MONTHS[today.month]}\n\n</b>'
+	texts += posts_1
+
+	today = datetime.datetime.now(tz=pytz.timezone("Asia/Qatar")).today() + datetime.timedelta(days=1)
+
+	texts += f"<b>\nЗавтра {config.WEEKDAYS[today.weekday()]}, {str(today.day)} {config.MONTHS[today.month]}\n\n</b>"
+	texts += posts_2
+
+
+	today = datetime.datetime.now(tz=pytz.timezone("Asia/Qatar")).today() + datetime.timedelta(days=2)
+	texts += f"<b>\nПослезавтра {config.WEEKDAYS[today.weekday()]}, {str(today.day)} {config.MONTHS[today.month]}\n\n</b>"
+	texts += posts_3
+
+	return texts
+
+
+
+
+
+def old_content_plan_text(posts_1, posts_2, posts_3):
 	import time
 	import datetime
 	import pytz
@@ -496,3 +522,12 @@ def swap_links_in_markup(old_markup: types.InlineKeyboardMarkup, new_link):
 						 buttons[7])
 
 	return keyboard
+
+
+def calculate_future_date(days_ahead):
+	from datetime import datetime, timedelta
+
+	days = (datetime.now() - datetime(1970, 1, 1)).days
+	today = datetime.now()
+	future_date = today + timedelta(days=days_ahead-days)
+	return future_date.strftime('%d.%m')

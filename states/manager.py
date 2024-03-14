@@ -14,3 +14,5 @@ class Poster(StatesGroup):
 	sendLink = State()
 
 	sendTime = State()
+
+	sendCommentToManager = State()

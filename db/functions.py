@@ -7,6 +7,7 @@ from aiogram import types
 
 from db.models import *
 from handlers.other import tg_stat
+from handlers.user import utils
 
 
 def add_user(user_id: int):
@@ -575,7 +576,7 @@ def from_post_id_to_data_(post_id):
 
 	return data
 
-def get_all_content_plan(day_delta, channel_id):
+def old_get_all_content_plan(day_delta, channel_id):
 	import datetime
 
 	today = datetime.date.today().strftime('%Y-%m-%d')
@@ -594,6 +595,31 @@ def get_all_content_plan(day_delta, channel_id):
 
 	posts: list = list(sended_post + time_posts)
 	return posts
+
+def get_all_content_plan(day_delta, channel_id):
+	now_day = utils.get_today_number()
+
+	print(channel_id)
+
+	schedule = ChannelSchedule.get_or_none(channel_id=channel_id)
+
+	if not schedule:
+		return "<i>Нет расписания. Обратитесь к администратору канала!</i>\n"
+
+	text = ''
+	for i in range(10):
+		line = getattr(schedule, f'place_{i+1}')
+		if not line: break
+
+		"🆓"
+		"🏷️"
+
+		ad_slot_1 = "✅" if utils.slot_status(schedule.channel_id, now_day + day_delta, i) else "❌"
+
+		text += f"{line} {ad_slot_1}\n"
+
+	return text
+
 
 def get_advert_content_plan(day_delta, channel_id):
 	import datetime

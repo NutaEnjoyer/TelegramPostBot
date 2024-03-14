@@ -105,8 +105,11 @@ async def update_channels_info():
         update_channel_info(find_channel)
 
 def schedule_job():
+    current_time = datetime.datetime.now()
+    next_day = current_time + datetime.timedelta(days=1)
+    desired_time = next_day.replace(hour=4, minute=0, second=0, microsecond=0)
     scheduler.add_job(do_some, 'interval', seconds=8)
-    scheduler.add_job(update_channels_info, 'interval', seconds=86400, next_run_time=datetime.datetime.now())
+    scheduler.add_job(update_channels_info, 'interval', seconds=86400, next_run_time=desired_time)
 
 async def __on_start_up(dp: Dispatcher) -> None:
     from filters import register_all_filters
