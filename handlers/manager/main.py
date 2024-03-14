@@ -24,9 +24,9 @@ async def channel_schedule_handler(call: types.CallbackQuery, state: FSMContext)
 
 	channel = Channel.get(id=channel_id)
 
-	today = db.get_all_content_plan(0, channel_id=channel.channel_id)
-	next_1 = db.get_all_content_plan(1, channel_id=channel.channel_id)
-	next_2 = db.get_all_content_plan(2, channel_id=channel.channel_id)
+	today = db.get_all_schedule_content_plan(0, channel_id=channel.channel_id)
+	next_1 = db.get_all_schedule_content_plan(1, channel_id=channel.channel_id)
+	next_2 = db.get_all_schedule_content_plan(2, channel_id=channel.channel_id)
 
 
 	text = utils.content_plan_text(today, next_1, next_2)

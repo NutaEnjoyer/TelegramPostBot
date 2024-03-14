@@ -576,7 +576,7 @@ def from_post_id_to_data_(post_id):
 
 	return data
 
-def old_get_all_content_plan(day_delta, channel_id):
+def get_all_content_plan(day_delta, channel_id):
 	import datetime
 
 	today = datetime.date.today().strftime('%Y-%m-%d')
@@ -596,7 +596,7 @@ def old_get_all_content_plan(day_delta, channel_id):
 	posts: list = list(sended_post + time_posts)
 	return posts
 
-def get_all_content_plan(day_delta, channel_id):
+def get_all_schedule_content_plan(day_delta, channel_id):
 	now_day = utils.get_today_number()
 
 	print(channel_id)
