@@ -1402,7 +1402,10 @@ async def swap_media_handler(message: types.Message, state: FSMContext):
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.extend(dict)
+	if isinstance(dict, list):
+		dicts.extend(dict)
+	else:
+		dicts.append(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 
@@ -1639,6 +1642,11 @@ async def simple_send_message_dict(dict, chat_id):
 
 async def group_send_message_dict(dicts, chat_id):
 	media_group = types.MediaGroup()
+
+	print(dicts)
+	print(type(dicts))
+	print(len(dicts))
+	print(dicts[0])
 	if 'poll' in dicts[0]['type']:
 		mes = await send_poll_dict(dicts, chat_id)
 		return mes
@@ -1682,7 +1690,10 @@ async def formations_send_post(message: types.Message, state: FSMContext):
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.extend(dict)
+	if isinstance(dict, list):
+		dicts.extend(dict)
+	else:
+		dicts.append(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 
@@ -4094,7 +4105,10 @@ async def formations_send_post_send_media(message: types.Message, state: FSMCont
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.extend(dict)
+	if isinstance(dict, list):
+		dicts.extend(dict)
+	else:
+		dicts.append(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 
@@ -4174,7 +4188,10 @@ async def formations_send_post_adv(message: types.Message, state: FSMContext):
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.extend(dict)
+	if isinstance(dict, list):
+		dicts.extend(dict)
+	else:
+		dicts.append(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 	print(message.message_id)
@@ -4707,7 +4724,10 @@ async def send_photo_post_handler(message: types.Message, state: FSMContext):
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.extend(dict)
+	if isinstance(dict, list):
+		dicts.extend(dict)
+	else:
+		dicts.append(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 
