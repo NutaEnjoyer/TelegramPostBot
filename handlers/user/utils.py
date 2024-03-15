@@ -459,7 +459,7 @@ async def send_poll_dict(dicts, chat_id):
 				explanation = dict['text']
 
 	return await bot.send_poll(chat_id, question=question, options=options, allows_multiple_answers=allows_multiple_answers,
-							   is_anonymous=is_anonymous, type=type, is_closed=is_closed, correct_option_id=correct_option_id,
+							   is_anonymous=True, type=type, is_closed=is_closed, correct_option_id=correct_option_id,
 							   explanation=explanation)
 
 
