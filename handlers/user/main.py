@@ -617,6 +617,8 @@ async def content_plan_edit_post(call: types.CallbackQuery, state: FSMContext):
 
 
 async def content_plan_edit_media(call: types.CallbackQuery, state: FSMContext):
+	await call.message.answer('<b>⚙️ В доработке</b>')
+	return
 	data = await state.get_data()
 	post = DictObject.get(id=data['post_id'])
 	if post.media is None or post.media == '':
@@ -1093,6 +1095,8 @@ async def rewrite_post_edit_text_send(message: types.Message, state: FSMContext)
 
 
 async def rewrite_post_edit_media(call: types.CallbackQuery, state: FSMContext):
+	await call.message.answer('<b>⚙️ В доработке</b>')
+	return
 	data = await state.get_data()
 	post = DictObject.get(id=data['post_id'])
 	if post.media is None or post.media == '':
@@ -1398,7 +1402,7 @@ async def swap_media_handler(message: types.Message, state: FSMContext):
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.append(dict)
+	dicts.extend(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 
@@ -1443,6 +1447,65 @@ async def next_message_exists(message):
 
 async def convert_message(message: types.Message, state: FSMContext):
 	dict = {}
+	if message.poll:
+		dicts = []
+		dict['type'] = 'pollQuestion'
+		dict['text'] = message.poll.question
+		dicts.append(dict)
+
+		for option in message.poll.options:
+			dict = {}
+			dict['type'] = 'pollOption'
+			dict['text'] = option.text
+			dicts.append(dict)
+
+		dict = {}
+		dict['type'] = 'pollIsClosed'
+		dict['text'] = message.poll.is_closed
+		dicts.append(dict)
+
+		dict = {}
+		dict['type'] = 'pollIsAnonymous'
+		dict['text'] = message.poll.is_anonymous
+		dicts.append(dict)
+
+		dict = {}
+		dict['type'] = 'pollType'
+		dict['text'] = message.poll.type
+		dicts.append(dict)
+
+		dict = {}
+		dict['type'] = 'pollAllowsMultipleAnswer'
+		dict['text'] = message.poll.allows_multiple_answers
+		dicts.append(dict)
+
+		if message.poll.correct_option_id:
+			dict = {}
+			dict['type'] = 'pollCorrectOptionId'
+			dict['text'] = message.poll.correct_option_id
+			dicts.append(dict)
+
+		if message.poll.explanation:
+			dict = {}
+			dict['type'] = 'pollExplanation'
+			dict['text'] = message.poll.explanation
+			dicts.append(dict)
+		return dicts
+
+	if message.location:
+		dicts = []
+		dict = {}
+		dict['type'] = "locationLatitude"
+		dict['text'] = message.location.latitude
+		dicts.append(dict)
+
+		dict = {}
+		dict['type'] = "locationLongitude"
+		dict['text'] = message.location.longitude
+		dicts.append(dict)
+
+		return dicts
+
 	if message.photo:
 		# Скачиваем фото или видео в директорию media
 		# file = await message.photo[-1].download(destination=media_dir)
@@ -1489,8 +1552,7 @@ async def convert_message(message: types.Message, state: FSMContext):
 	else:
 		dict['type'] = 'text'
 
-
-	if message.text: 
+	if message.text:
 		dict['text'] = message.html_text
 	elif message.caption:
 		dict['text'] = message.html_text
@@ -1501,6 +1563,58 @@ async def convert_message(message: types.Message, state: FSMContext):
 
 	return dict
 
+async def send_poll_dict(dicts, chat_id):
+	question = "None"
+	options = []
+	is_closed = None
+	is_anonymous = None
+	type = None
+	allows_multiple_answers = None
+	explanation = None
+	correct_option_id = None
+
+	for dict in dicts:
+		match dict['type']:
+			case 'pollQuestion':
+				question = dict['text']
+			case 'pollOption':
+				options.append(dict['text'])
+			case 'pollIsClosed':
+				is_closed = dict['text']
+			case 'pollIsAnonymous':
+				is_anonymous = dict['text']
+			case 'pollType':
+				type = dict['text']
+			case 'pollAllowsMultipleAnswer':
+				allows_multiple_answers = dict['text']
+			case 'pollCorrectOptionId':
+				correct_option_id = dict['text']
+			case 'pollExplanation':
+				explanation = dict['text']
+
+	print("Question:", question)
+	print("Options:", options)
+	print("Is closed:", is_closed)
+	print("Is anonymous:", is_anonymous)
+	print("Type:", type)
+	print("Allows multiple answers:", allows_multiple_answers)
+	print("Explanation:", explanation)
+	print("Correct option ID:", correct_option_id)
+	return await bot.send_poll(chat_id, question=question, options=options, allows_multiple_answers=allows_multiple_answers,
+							   is_anonymous=is_anonymous, type=type, is_closed=is_closed, correct_option_id=correct_option_id,
+							   explanation=explanation)
+
+async def send_location_dict(dicts, chat_id):
+	latitude = None
+	longitude = None
+
+	for dict in dicts:
+		if dict['type'] == 'locationLongitude':
+			longitude = dict['text']
+		elif dict['type'] == 'locationLatitude':
+			latitude = dict['text']
+
+	return await bot.send_location(chat_id, latitude=latitude, longitude=longitude)
 
 async def simple_send_message_dict(dict, chat_id):
 	match dict['type']:
@@ -1525,6 +1639,12 @@ async def simple_send_message_dict(dict, chat_id):
 
 async def group_send_message_dict(dicts, chat_id):
 	media_group = types.MediaGroup()
+	if 'poll' in dicts[0]['type']:
+		mes = await send_poll_dict(dicts, chat_id)
+		return mes
+
+	if 'location' in dicts[0]['type']:
+		return await send_location_dict(dicts, chat_id)
 	for dict in dicts:
 		match dict['type']:
 			case 'photo':
@@ -1536,7 +1656,7 @@ async def group_send_message_dict(dicts, chat_id):
 			case 'document':
 				media_group.attach_document(dict['file_id'], caption=dict['text'])
 	mes = await bot.send_media_group(chat_id, media_group)
-	return mes 
+	return mes
 			
 async def send_message_dicts(dicts, chat_id):
 	if len(dicts) == 1:
@@ -1545,6 +1665,7 @@ async def send_message_dicts(dicts, chat_id):
 		return await group_send_message_dict(dicts, chat_id)
 
 async def formations_send_post(message: types.Message, state: FSMContext):
+	print(message)
 	# point
 	data = await state.get_data()
 
@@ -1561,7 +1682,7 @@ async def formations_send_post(message: types.Message, state: FSMContext):
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.append(dict)
+	dicts.extend(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 
@@ -3973,7 +4094,7 @@ async def formations_send_post_send_media(message: types.Message, state: FSMCont
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.append(dict)
+	dicts.extend(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 
@@ -4053,7 +4174,7 @@ async def formations_send_post_adv(message: types.Message, state: FSMContext):
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.append(dict)
+	dicts.extend(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 	print(message.message_id)
@@ -4586,7 +4707,7 @@ async def send_photo_post_handler(message: types.Message, state: FSMContext):
 
 	dicts = data['dicts']
 	messes = data['mess']
-	dicts.append(dict)
+	dicts.extend(dict)
 	messes.append(message)
 	await state.update_data(dicts=dicts, mess=messes)
 

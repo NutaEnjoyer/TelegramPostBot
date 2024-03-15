@@ -426,6 +426,9 @@ async def group_send_message_dict(dicts, chat_id):
 
 
 async def send_message_dicts(dicts, chat_id):
+	from handlers.user.utils import send_message_dicts
+	await send_message_dicts(dicts, chat_id)
+	return
 	if len(dicts) == 1:
 		return await simple_send_message_dict(dicts[0], chat_id)
 	else:

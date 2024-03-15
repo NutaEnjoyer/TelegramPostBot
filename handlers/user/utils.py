@@ -416,9 +416,63 @@ async def simple_send_message_dict(dict, chat_id, info, config, bot=bot):
 
 
 
+async def send_location_dict(dicts, chat_id):
+	latitude = None
+	longitude = None
+
+	for dict in dicts:
+		if dict['type'] == 'locationLongitude':
+			longitude = dict['text']
+		elif dict['type'] == 'locationLatitude':
+			latitude = dict['text']
+
+	return await bot.send_location(chat_id, latitude=latitude, longitude=longitude)
+
+
+async def send_poll_dict(dicts, chat_id):
+	question = "None"
+	options = []
+	is_closed = None
+	is_anonymous = None
+	type = None
+	allows_multiple_answers = None
+	correct_option_id = None
+
+
+	for dict in dicts:
+		match dict['type']:
+			case 'pollQuestion':
+				question = dict['text']
+			case 'pollOption':
+				options.append(dict['text'])
+			case 'pollIsClosed':
+				is_closed = dict['text']
+			case 'pollIsAnonymous':
+				is_anonymous = dict['text']
+			case 'pollType':
+				type = dict['text']
+			case 'pollAllowsMultipleAnswer':
+				allows_multiple_answers = dict['text']
+			case 'pollCorrectOptionId':
+				correct_option_id = dict['text']
+			case 'pollExplanation':
+				explanation = dict['text']
+
+	return await bot.send_poll(chat_id, question=question, options=options, allows_multiple_answers=allows_multiple_answers,
+							   is_anonymous=is_anonymous, type=type, is_closed=is_closed, correct_option_id=correct_option_id,
+							   explanation=explanation)
+
+
 async def group_send_message_dict(dicts, chat_id, info, config, bot=bot):
 	disable_notification = not info.with_notification if info else False
-	print('Disable', disable_notification)
+
+	if 'poll' in dicts[0]['type']:
+		mes = await send_poll_dict(dicts, chat_id)
+		return mes
+
+	if 'location' in dicts[0]['type']:
+		return await send_location_dict(dicts, chat_id)
+
 	media_group = types.MediaGroup()
 	has_text = False
 	for dict in dicts:
@@ -463,8 +517,6 @@ async def send_message_dicts(dicts, chat_id, info=None, config=None, bot=bot):
 		return await group_send_message_dict(dicts, chat_id, info, config, bot)	
 			
 async def send_message_dicts_file_path(dicts, chat_id, info=None, config=None):
-	print("dicts")
-	print(dicts)
 	if len(dicts) == 1:
 		return await simple_send_message_dict_file_path(dicts[0], chat_id, info, config)
 	else:

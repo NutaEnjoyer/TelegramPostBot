@@ -759,6 +759,12 @@ def all_content_plan_keyboard(time_delay, posts, without_date=False):
 			
 		status = '✅' if i.time < time.time() else '⏳'
 		type = ''
+		if 'poll' in dicts[0].type:
+			type = '📊'
+		if 'location' in dicts[0].type:
+			type = '📍'
+
+
 		match dicts[0].type:
 			case 'photo':
 				type = '🏞'
@@ -1365,6 +1371,10 @@ def my_posts(posts):
 			dict_text = result
 			
 		type = ''
+		if 'poll' in dicts[0].type:
+			type = '📊'
+		if 'location' in dicts[0].type:
+			type = '📍'
 		match dicts[0].type:
 			case 'photo':
 				type = '🏞'
@@ -1751,6 +1761,10 @@ def my_posts_b(posts):
 			dict_text = result
 			
 		type = ''
+		if 'poll' in dicts[0].type:
+			type = '📊'
+		if 'location' in dicts[0].type:
+			type = '📍'
 		match dicts[0].type:
 			case 'photo':
 				type = '🏞'
