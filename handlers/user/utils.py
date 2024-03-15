@@ -437,7 +437,7 @@ async def send_poll_dict(dicts, chat_id):
 	type = None
 	allows_multiple_answers = None
 	correct_option_id = None
-
+	explanation = None
 
 	for dict in dicts:
 		match dict['type']:
