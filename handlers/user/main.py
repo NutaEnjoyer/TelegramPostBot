@@ -51,7 +51,8 @@ async def cryptobot_handler(message: types.Message, state: FSMContext):
 		"user_id": message.chat.id,
 		"asset": "USDT",
 		"amount": price,
-		"spend_id": time.time()
+		"spend_id": time.time(),
+		"disable_send_notification": True
 	}
 
 	response = requests.post(url, headers=headers, json=json)
