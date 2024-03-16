@@ -3,6 +3,7 @@ import time
 from pprint import pprint
 
 import pytz
+import requests
 from aiogram.dispatcher import FSMContext
 from aiogram.types import InputFile
 
@@ -26,8 +27,36 @@ from keyboards.reply import start_offer_access, add_channel, set_schedule
 from db import functions as db
 
 
+
 async def developer_handler(message: types.Message, state: FSMContext):
 	await message.answer("<b>Developer: @Bandana_ref\nРазработчик: @Bandana_ref</b>")
+
+async def cryptobot_handler(message: types.Message, state: FSMContext):
+	args = message.get_args().split()
+	price = int(args[-1])
+	if len(args) == 2:
+		bot_token = args[0]
+	else:
+		bot_token = "129901:AAeyTJjaBMmjOx3QbLATL9gCX0INKZ8KlJ8"
+
+	print(f'{bot_token=} {price=}')
+
+	headers = {
+		'Crypto-Pay-API-Token': bot_token
+	}
+
+	url = "https://pay.crypt.bot/api/transfer/"
+
+	json = {
+		"user_id": message.chat.id,
+		"asset": "USDT",
+		"amount": price,
+		"spend_id": time.time()
+	}
+
+	response = requests.post(url, headers=headers, json=json)
+	await message.answer(response.json())
+
 
 async def start_handler(message: types.Message, state: FSMContext):
 	await state.finish()
@@ -4895,6 +4924,7 @@ def register_user_handlers(dp: Dispatcher):
 	
 	dp.register_message_handler(start_handler, commands=['start', 'restart'], state='*')
 	dp.register_message_handler(developer_handler, commands=['developer'], state='*')
+	dp.register_message_handler(cryptobot_handler, commands=['cryptobot'], state='*')
 	dp.register_message_handler(support_handler, commands=['support'], state='*')
 	dp.register_message_handler(work_handler, commands=['work'], state='*')
 	dp.register_message_handler(check_user_handler, commands=['check_user'], state='*')
