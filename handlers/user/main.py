@@ -31,6 +31,31 @@ from db import functions as db
 async def developer_handler(message: types.Message, state: FSMContext):
 	await message.answer("<b>Developer: @Bandana_ref\nРазработчик: @Bandana_ref</b>")
 
+async def get_crypto_bot_balance_handler(message: types.Message, state: FSMContext):
+	import datetime
+	args = message.get_args().split()
+
+	if len(args) == 1:
+		bot_token = args[0]
+	else:
+		bot_token = "135343:AAUlyxb1hUYZOkixa67zzna2LShjl4fe8O7"
+
+	print(f'{bot_token=}')
+
+	headers = {
+		'Crypto-Pay-API-Token': bot_token
+	}
+
+	url = "https://pay.crypt.bot/api/getBalance/"
+
+	response = requests.get(url, headers=headers)
+
+	balance = response.json()
+	text = f"{datetime.datetime.now().replace(microsecond=0)} -- {balance['result'][0]['available']}"
+
+	await message.answer(text)
+
+
 async def cryptobot_handler(message: types.Message, state: FSMContext):
 	args = message.get_args().split()
 	price = int(args[-1])
@@ -4927,6 +4952,7 @@ def register_user_handlers(dp: Dispatcher):
 	dp.register_message_handler(start_handler, commands=['start', 'restart'], state='*')
 	dp.register_message_handler(developer_handler, commands=['developer'], state='*')
 	dp.register_message_handler(cryptobot_handler, commands=['cryptobot'], state='*')
+	dp.register_message_handler(get_crypto_bot_balance_handler, commands=['cryptobot_balance'], state='*')
 	dp.register_message_handler(support_handler, commands=['support'], state='*')
 	dp.register_message_handler(work_handler, commands=['work'], state='*')
 	dp.register_message_handler(check_user_handler, commands=['check_user'], state='*')
