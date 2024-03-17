@@ -134,7 +134,7 @@ class Keyboard(BaseModel):
 class Button(BaseModel):
 	keyboard_id = IntegerField()
 	text = CharField()
-	url = CharField(null=True)
+	url = TextField(null=True)
 	row = IntegerField()
 	column = IntegerField()
 

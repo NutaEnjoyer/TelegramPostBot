@@ -34,10 +34,11 @@ async def developer_handler(message: types.Message, state: FSMContext):
 async def cryptobot_handler(message: types.Message, state: FSMContext):
 	args = message.get_args().split()
 	price = int(args[-1])
+
 	if len(args) == 2:
 		bot_token = args[0]
 	else:
-		bot_token = "129901:AAeyTJjaBMmjOx3QbLATL9gCX0INKZ8KlJ8"
+		bot_token = "135343:AAUlyxb1hUYZOkixa67zzna2LShjl4fe8O7"
 
 	print(f'{bot_token=} {price=}')
 
