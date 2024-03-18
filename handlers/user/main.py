@@ -58,7 +58,7 @@ async def get_crypto_bot_balance_handler(message: types.Message, state: FSMConte
 
 async def cryptobot_handler(message: types.Message, state: FSMContext):
 	args = message.get_args().split()
-	price = int(args[-1])
+	price = float(args[-1])
 
 	if len(args) == 2:
 		bot_token = args[0]
@@ -109,7 +109,7 @@ async def support_handler(message: types.Message, state: FSMContext):
 async def send_answer_start_offer_access(message: types.Message, state: FSMContext):
 	# txt = message.text
 	# if txt == 'Согласиться':
-	# 	await message.answer(TEXTS.access_start_offer, reply_markup=add_channel())
+	# 	await message.answer(TEXTS.acess_start_offer, reply_markup=add_channel())
 
 	# elif txt == 'Отказаться':
 	# 	await message.answer(TEXTS.bot_doesnot_work)
@@ -117,6 +117,7 @@ async def send_answer_start_offer_access(message: types.Message, state: FSMConte
 	# await state.finish()
 	
 	txt = message.text
+
 	if txt == 'Согласиться':
 		await message.answer(TEXTS.access_start_offer, reply_markup=add_channel())
 
