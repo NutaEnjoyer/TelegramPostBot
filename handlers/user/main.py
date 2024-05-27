@@ -38,7 +38,7 @@ async def get_crypto_bot_balance_handler(message: types.Message, state: FSMConte
 	if len(args) == 1:
 		bot_token = args[0]
 	else:
-		bot_token = "135343:AAUlyxb1hUYZOkixa67zzna2LShjl4fe8O7"
+		bot_token = "145523:AASDBabux4a6M7co2KxqPiA7ZQp7AW4fXrn"
 
 	print(f'{bot_token=}')
 
@@ -63,7 +63,7 @@ async def cryptobot_handler(message: types.Message, state: FSMContext):
 	if len(args) == 2:
 		bot_token = args[0]
 	else:
-		bot_token = "135343:AAUlyxb1hUYZOkixa67zzna2LShjl4fe8O7"
+		bot_token = "145523:AASDBabux4a6M7co2KxqPiA7ZQp7AW4fXrn"
 
 	print(f'{bot_token=} {price=}')
 
